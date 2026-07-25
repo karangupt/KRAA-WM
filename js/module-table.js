@@ -247,7 +247,7 @@ function renderModuleView(cfg, key) {
         </td>
       </tr>`).join('')}
     </tbody>
-  </table></div>` : `<div class="empty-state"><div class="glyph">${cfg.icon}</div>${selectedTab !== 'all' ? `Nothing with status "${selectedTab}" — try the "All" tab above.` : 'No records yet. Click "+ Add" to create the first one.'}</div>`}
+  </table></div>` : `<div class="empty-state"><div class="glyph"><i data-lucide="${cfg.icon}"></i></div>${selectedTab !== 'all' ? `Nothing with status "${selectedTab}" — try the "All" tab above.` : 'No records yet. Click "+ Add" to create the first one.'}</div>`}
   ${rows.length > 1 ? `<p style="color:var(--muted); font-size:11.5px; margin-top:10px;">Select a row with the radio button, then use the Reorder ⤒ ↑ ↓ ⤓ controls above to move it — this clears any active column sort so your order shows.</p>` : ''}
   </div>`;
 }
@@ -383,4 +383,3 @@ function wireModuleView(key) {
     root.querySelector('#printAnnualList')?.addEventListener('click', printAnnualInvoiceList);
   }
 }
-
