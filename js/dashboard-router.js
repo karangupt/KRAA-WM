@@ -31,7 +31,11 @@ function render() {
     root.innerHTML = renderPlaceholder({ title: currentView, note: 'This module is on the roadmap.' });
   } catch (err) {
     console.error('Render error for view', currentView, err);
-    root.innerHTML = `<div class="empty-state"><div class="glyph">⚠</div>Something went wrong loading this view.<br><span style="font-size:11px;">${err.message}</span></div>`;
+    root.innerHTML = `<div class="empty-state"><div class="glyph"><i data-lucide="alert-triangle"></i></div>Something went wrong loading this view.<br><span style="font-size:11px;">${err.message}</span></div>`;
+  } finally {
+    // Views are rebuilt via innerHTML every navigation, so any <i data-lucide="...">
+    // placeholders need to be (re)converted to inline SVGs each time.
+    if (window.lucide) lucide.createIcons();
   }
 }
 
@@ -70,7 +74,7 @@ function buildMonthlyTrend() {
 
 function renderMonthlyTrend() {
   const rows = buildMonthlyTrend();
-  if (!rows.length) return `<div class="empty-state"><div class="glyph">◓</div>No dated income/expense entries yet.</div>`;
+  if (!rows.length) return `<div class="empty-state"><div class="glyph"><i data-lucide="wallet"></i></div>No dated income/expense entries yet.</div>`;
   const maxVal = Math.max(1, ...rows.map(([, v]) => Math.max(v.income, v.expense)));
   return `
   <div style="display:flex; flex-direction:column; gap:14px;">
@@ -217,7 +221,6 @@ function renderDashboard() {
           <td>${tagFor(b.status)}</td>
         </tr>`).join('')}
       </tbody>
-    </table></div>` : `<div class="empty-state"><div class="glyph">◨</div>No bookings yet.</div>`}
+    </table></div>` : `<div class="empty-state"><div class="glyph"><i data-lucide="calendar-check"></i></div>No bookings yet.</div>`}
   </div>`;
 }
-
