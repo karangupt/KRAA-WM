@@ -28,6 +28,18 @@ function renderSettingsView() {
       <button class="btn" id="pushAllBtn">↑ Push all local data to Sheets</button>
     </div>
     <div id="pushAllStatus" style="margin-top:10px; font-size:12.5px; color:var(--muted);"></div>
+
+    <div style="border-top:1px solid var(--line); margin-top:16px; padding-top:14px;">
+      <label style="display:block; font-size:11.5px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; margin-bottom:8px;">Set up / reset Sheets sync token</label>
+      <p style="color:var(--muted); font-size:12px; margin-bottom:10px; line-height:1.5;">
+        This is separate from your login — it's what lets this app talk to your Apps Script backend. Pick a password below, generate its hash, then put the <strong style="color:var(--text);">plain password</strong> in <code>Code.gs → setAppPassword()</code> (run it once in Apps Script) and the <strong style="color:var(--text);">hash</strong> in <code>js/sheets-api.js → SHEETS_SYNC_TOKEN</code>.
+      </p>
+      <div class="field"><label>Choose a password</label><input type="text" id="sheetsTokenInput" placeholder="e.g. Workspace2026Sync"></div>
+      <button class="btn secondary" id="sheetsTokenGenBtn" style="margin-top:8px;">Generate hash</button>
+      <div id="sheetsTokenResultField" style="display:none; margin-top:12px;">
+        <div class="field"><label>Hash — paste into js/sheets-api.js (SHEETS_SYNC_TOKEN)</label><input type="text" id="sheetsTokenResult" readonly onclick="this.select()"></div>
+      </div>
+    </div>
   </div>
   ` : ''}
 
@@ -78,6 +90,14 @@ function renderSettingsView() {
 
 function wireSettingsView() {
   const root = $('#viewRoot');
+
+  root.querySelector('#sheetsTokenGenBtn')?.addEventListener('click', async () => {
+    const pw = root.querySelector('#sheetsTokenInput').value;
+    if (!pw) { alert('Type a password first.'); return; }
+    const hash = await sha256Hex(pw);
+    root.querySelector('#sheetsTokenResult').value = hash;
+    root.querySelector('#sheetsTokenResultField').style.display = '';
+  });
 
   root.querySelector('#chgPwGenBtn')?.addEventListener('click', async () => {
     const pw = root.querySelector('#chgPwInput').value;
