@@ -99,7 +99,7 @@ function renderInvoiceGen() {
             <td><input type="number" data-item-field="qty" data-item-idx="${i}" value="${it.qty}" style="width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text); padding:6px 8px; border-radius:6px; font-size:13px;"></td>
             <td><input type="number" data-item-field="rate" data-item-idx="${i}" value="${it.rate}" style="width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text); padding:6px 8px; border-radius:6px; font-size:13px;"></td>
             <td class="name-cell">${fmt((Number(it.qty)||0)*(Number(it.rate)||0))}</td>
-            <td><button data-remove-item="${i}" style="background:none; border:none; color:var(--danger); cursor:pointer;">✕</button></td>
+            <td><button data-remove-item="${i}" style="background:none; border:none; color:var(--danger); cursor:pointer; display:flex; align-items:center;"><i data-lucide="x" style="width:14px;height:14px;"></i></button></td>
           </tr>`).join('')}
         </tbody>
       </table></div>
@@ -349,4 +349,3 @@ function wireInvoiceGenRefresh() {
   const totalEl = document.querySelector('#invoiceGenControls .card:nth-child(3) p strong');
   if (totalEl) totalEl.textContent = fmt(invoiceItemsTotal());
 }
-
