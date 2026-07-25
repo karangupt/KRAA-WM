@@ -2,7 +2,7 @@
 
 const MODULES = {
   customer: {
-    title: 'Customers', collection: 'customers', icon: '◔',
+    title: 'Customers', collection: 'customers', icon: 'users',
     columns: [
       { label: 'Name', field: 'name', cls: 'name-cell' },
       { label: 'Company', field: 'companyName' },
@@ -20,7 +20,7 @@ const MODULES = {
     ]
   },
   booking: {
-    title: 'Bookings', collection: 'bookings', icon: '◨',
+    title: 'Bookings', collection: 'bookings', icon: 'calendar-check',
     statusTabs: ['pending', 'confirmed', 'completed', 'cancelled'],
     sortField: 'startDate',
     columns: [
@@ -46,7 +46,7 @@ const MODULES = {
     ]
   },
   inventory: {
-    title: 'Equipment Inventory', collection: 'equipment', icon: '◫',
+    title: 'Equipment Inventory', collection: 'equipment', icon: 'projector',
     columns: [
       { label: 'Equipment', field: 'name', cls: 'name-cell' },
       { label: 'Category', field: 'category' },
@@ -63,7 +63,7 @@ const MODULES = {
     ]
   },
   expense: {
-    title: 'Expenses', collection: 'expenses', icon: '◒',
+    title: 'Expenses', collection: 'expenses', icon: 'receipt',
     columns: [
       { label: 'Date', field: 'date', render: fmtDate },
       { label: 'Category', field: 'category' },
@@ -85,7 +85,7 @@ const MODULES = {
     ]
   },
   invoice: {
-    title: 'Invoices', collection: 'invoices', icon: '◪',
+    title: 'Invoices', collection: 'invoices', icon: 'file-text',
     columns: [
       { label: 'Number', field: 'number', cls: 'name-cell' },
       { label: 'Type', field: 'docType', render: v => v || 'Invoice' },
@@ -132,7 +132,7 @@ const MODULES = {
     }
   },
   payments: {
-    title: 'Payments', collection: 'payments', icon: '◓',
+    title: 'Payments', collection: 'payments', icon: 'banknote',
     columns: [
       { label: 'Date', field: 'date', render: fmtDate },
       { label: 'Invoice', field: 'invoiceId', render: v => {
@@ -151,7 +151,7 @@ const MODULES = {
     ]
   },
   staff: {
-    title: 'Staff', collection: 'staff', icon: '◕',
+    title: 'Staff', collection: 'staff', icon: 'user-cog',
     columns: [
       { label: 'Name', field: 'name', cls: 'name-cell' },
       { label: 'Role', field: 'role' },
@@ -166,7 +166,7 @@ const MODULES = {
     ]
   },
   bank: {
-    title: 'Bank Accounts', collection: 'bankAccounts', icon: '◧',
+    title: 'Bank Accounts', collection: 'bankAccounts', icon: 'landmark',
     columns: [
       { label: 'Bank', field: 'bank', cls: 'name-cell' },
       { label: 'Type', field: 'accType', render: v => LOCKED_ACCOUNT_TYPES.includes(v) ? `${v} <span class="tag due" style="margin-left:6px;">Locked</span>` : (v || '—') },
@@ -189,7 +189,7 @@ const MODULES = {
     ]
   },
   fdrd: {
-    title: 'FD / RD', collection: 'fdrd', icon: '◨',
+    title: 'FD / RD', collection: 'fdrd', icon: 'piggy-bank',
     columns: [
       { label: 'Type', field: 'type' },
       { label: 'Bank', field: 'bank', cls: 'name-cell' },
@@ -206,7 +206,7 @@ const MODULES = {
     ]
   },
   investments: {
-    title: 'Investments', collection: 'investments', icon: '◫',
+    title: 'Investments', collection: 'investments', icon: 'trending-up',
     extraAction: { id: 'refreshPrices', label: '↻ Refresh Prices' },
     columns: [
       { label: 'Type', field: 'type' },
@@ -230,7 +230,7 @@ const MODULES = {
     ]
   },
   vendor: {
-    title: 'Vendors', collection: 'vendors', icon: '◔',
+    title: 'Vendors', collection: 'vendors', icon: 'truck',
     columns: [
       { label: 'Vendor', field: 'name', cls: 'name-cell' },
       { label: 'Company', field: 'companyName' },
@@ -250,7 +250,7 @@ const MODULES = {
     ]
   },
   creditcards: {
-    title: 'Credit Cards', collection: 'creditCards', icon: '◪',
+    title: 'Credit Cards', collection: 'creditCards', icon: 'credit-card',
     columns: [
       { label: 'Card', field: 'cardName', cls: 'name-cell' },
       { label: 'Bank', field: 'bank' },
@@ -270,7 +270,7 @@ const MODULES = {
     ]
   },
   giftcards: {
-    title: 'Gift Cards & Wallets', collection: 'giftCards', icon: '◓',
+    title: 'Gift Cards & Wallets', collection: 'giftCards', icon: 'gift',
     columns: [
       { label: 'Platform', field: 'platform', cls: 'name-cell' },
       { label: 'Balance', field: 'balance', render: v => fmt(v) },
@@ -284,7 +284,7 @@ const MODULES = {
     ]
   },
   assets: {
-    title: 'Assets & Liabilities', collection: 'assets', icon: '◒',
+    title: 'Assets & Liabilities', collection: 'assets', icon: 'scale',
     columns: [
       { label: 'Type', field: 'type' },
       { label: 'Name', field: 'name', cls: 'name-cell' },
@@ -297,7 +297,7 @@ const MODULES = {
     ]
   },
   personal: {
-    title: 'Recurring Bills & Utilities', collection: 'personalExpenses', icon: '◪',
+    title: 'Recurring Bills & Utilities', collection: 'personalExpenses', icon: 'repeat',
     columns: [
       { label: 'Category', field: 'category', cls: 'name-cell' },
       { label: 'Frequency', field: 'frequency' },
@@ -312,7 +312,7 @@ const MODULES = {
     ]
   },
   otherIncome: {
-    title: 'Other Income', collection: 'otherIncome', icon: '◓',
+    title: 'Other Income', collection: 'otherIncome', icon: 'wallet',
     columns: [
       { label: 'Date', field: 'date', render: fmtDate },
       { label: 'Source', field: 'type', cls: 'name-cell' },
@@ -327,7 +327,7 @@ const MODULES = {
     ]
   },
   insurance: {
-    title: 'Insurance', collection: 'insurance', icon: '◕',
+    title: 'Insurance', collection: 'insurance', icon: 'shield-check',
     columns: [
       { label: 'Type', field: 'type' },
       { label: 'Company', field: 'insuranceCompany', cls: 'name-cell' },
@@ -353,7 +353,7 @@ const MODULES = {
     ]
   },
   documents: {
-    title: 'Document Vault', collection: 'documents', icon: '◪',
+    title: 'Document Vault', collection: 'documents', icon: 'folder-lock',
     columns: [
       { label: 'Family Member', field: 'familyMember', cls: 'name-cell' },
       { label: 'Category', field: 'category' },
@@ -371,7 +371,7 @@ const MODULES = {
     ]
   },
   familyNotes: {
-    title: 'Family Notes', collection: 'familyNotes', icon: '◕',
+    title: 'Family Notes', collection: 'familyNotes', icon: 'notebook-pen',
     columns: [
       { label: 'Title', field: 'title', cls: 'name-cell' },
       { label: 'For', field: 'forWhom' },
