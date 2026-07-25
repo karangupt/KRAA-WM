@@ -35,7 +35,7 @@ const STOCK_API_KEY_PROPERTY = 'STOCK_API_KEY';
 
 // ---- Run this once manually from the Apps Script editor. ----
 function setAppPassword() {
-  const password = 'Workspace2026Sync'; // <-- put your real password here, run once, then change back
+  const password = 'CHANGE_ME'; // <-- put your real password here, run once, then change back
   const hash = sha256(password);
   PropertiesService.getScriptProperties().setProperty(PASSWORD_PROPERTY, hash);
   Logger.log('Password set. Hash stored: ' + hash);
