@@ -60,7 +60,7 @@ button{font-family:inherit;}
 }
 .nav-item:hover{background:var(--panel-2);}
 .nav-item.active{background:var(--amber-dim); color:var(--amber);}
-.nav-ico{width:16px; text-align:center; color:var(--muted); font-size:13px;}
+.nav-ico{width:16px; height:16px; flex-shrink:0; color:var(--muted); stroke-width:2px;}
 .nav-item.active .nav-ico{color:var(--amber);}
 
 .sync-box{
@@ -83,7 +83,8 @@ button{font-family:inherit;}
   padding:0 24px; border-bottom:1px solid var(--line); background:var(--bg);
   position:sticky; top:0; z-index:20;
 }
-.hamburger{display:none; background:none; border:none; color:var(--text); font-size:20px; cursor:pointer;}
+.hamburger{display:none; background:none; border:none; color:var(--text); cursor:pointer; align-items:center;}
+.hamburger svg{width:20px; height:20px;}
 .view-title{font-family:var(--font-disp); font-size:19px; font-weight:600; margin:0; flex:1;}
 .date-chip{font-family:var(--font-mono); font-size:12px; color:var(--muted);}
 
@@ -151,7 +152,8 @@ table.ledger tbody tr:hover{background:rgba(232,163,61,.04);}
 .empty-state{
   text-align:center; padding:50px 20px; color:var(--muted); border:1px dashed var(--line); border-radius:var(--radius);
 }
-.empty-state .glyph{font-size:26px; color:var(--amber-dim); margin-bottom:10px;}
+.empty-state .glyph{color:var(--amber-dim); margin-bottom:10px; display:flex; justify-content:center;}
+.empty-state .glyph svg{width:32px; height:32px; stroke-width:1.5px;}
 
 .placeholder-view{
   border:1px dashed var(--line); border-radius:var(--radius); padding:60px 20px; text-align:center; color:var(--muted);
@@ -170,7 +172,8 @@ table.ledger tbody tr:hover{background:rgba(232,163,61,.04);}
 }
 .modal-head{display:flex; align-items:center; justify-content:space-between; padding:16px 18px; border-bottom:1px solid var(--line);}
 .modal-head h3{margin:0; font-family:var(--font-disp); font-size:15px;}
-.modal-close{background:none; border:none; color:var(--muted); font-size:16px; cursor:pointer;}
+.modal-close{background:none; border:none; color:var(--muted); cursor:pointer; display:flex; align-items:center;}
+.modal-close svg{width:18px; height:18px;}
 .modal-body{padding:18px; overflow-y:auto; display:flex; flex-direction:column; gap:12px;}
 .field label{display:block; font-size:11.5px; color:var(--muted); margin-bottom:5px; text-transform:uppercase; letter-spacing:.05em;}
 .field input, .field select{
@@ -270,7 +273,7 @@ table.ledger thead th.sortable-th:hover{color:var(--amber);}
   .sidebar{transform:translateX(-100%);}
   .sidebar.open{transform:translateX(0);}
   .main{margin-left:0;}
-  .hamburger{display:block;}
+  .hamburger{display:flex;}
   .backdrop.show{display:block;}
 }
 
