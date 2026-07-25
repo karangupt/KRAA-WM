@@ -22,11 +22,17 @@
 
 const SHEETS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwJTj3UebiT22BKSPf3By670b0RnzZOCUQPp57Qpy35xvEZ5eSZ08GWTwc7AUNDHksvvA/exec'; // <-- paste your Apps Script Web App URL here
 
+// This is a SEPARATE password/token from login (login is Supabase Auth
+// now). This one just authenticates this app's requests to your Apps
+// Script backend. Set it up once in Settings → "Sync with Google Sheets"
+// → "Set up Sheets sync token" — it walks you through both sides.
+const SHEETS_SYNC_TOKEN = ''; // <-- paste the generated hash here (see Settings page)
+
 const SheetsAPI = (() => {
   const isConfigured = () => !!SHEETS_WEB_APP_URL;
 
   function token() {
-    return (typeof Auth !== 'undefined' && Auth.getToken()) || '';
+    return SHEETS_SYNC_TOKEN || '';
   }
 
   async function ping() {
