@@ -24,6 +24,9 @@ async function showApp() {
     if (sub) sub.textContent = 'Syncing your data from Google Sheets...';
     await pullFromSheetsIntoStore();
   }
+  if (typeof SupabaseSync !== 'undefined') {
+    await pullFromSupabaseIntoStore();
+  }
 
   $('#loginScreen').style.display = 'none';
   $('#appRoot').style.display = '';
@@ -71,6 +74,27 @@ async function pullFromSheetsIntoStore() {
       Store.importJSON(JSON.stringify(current));
     } catch (e) {
       console.error('Could not merge Sheets data into local store', e);
+    }
+  }
+}
+
+// Same safe merge pattern as Sheets above: only collections that actually
+// have rows in Supabase get overwritten locally. Before the one-time
+// migration (Settings → "Migrate to Supabase") this is a no-op, since
+// Supabase has no rows yet — nothing local gets touched.
+async function pullFromSupabaseIntoStore() {
+  const result = await SupabaseSync.pullAll();
+  if (result && result.ok && result.data) {
+    try {
+      const current = JSON.parse(Store.exportJSON());
+      Object.keys(result.data).forEach(col => {
+        if (Array.isArray(result.data[col]) && result.data[col].length) {
+          current[col] = result.data[col];
+        }
+      });
+      Store.importJSON(JSON.stringify(current));
+    } catch (e) {
+      console.error('Could not merge Supabase data into local store', e);
     }
   }
 }
