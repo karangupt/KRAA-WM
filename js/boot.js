@@ -77,47 +77,6 @@ async function pullFromSheetsIntoStore() {
 
 function initLogin() {
   wireLoginForm();
-  wireHashHelper();
-}
-
-function wireHashHelper() {
-  const showLink = $('#showHashHelper');
-  const backLink = $('#backToLogin');
-  const loginCard = $('#loginForm');
-  const helperCard = $('#hashHelperCard');
-  const genBtn = $('#generateHashBtn');
-  const copyBtn = $('#copyHashBtn');
-
-  showLink?.addEventListener('click', (e) => {
-    e.preventDefault();
-    loginCard.style.display = 'none';
-    helperCard.style.display = '';
-  });
-
-  backLink?.addEventListener('click', (e) => {
-    e.preventDefault();
-    helperCard.style.display = 'none';
-    loginCard.style.display = '';
-  });
-
-  genBtn?.addEventListener('click', async () => {
-    const pw = $('#hashInputPassword').value;
-    if (!pw) { alert('Type a password first.'); return; }
-    const hash = await sha256Hex(pw);
-    $('#hashResult').value = hash;
-    $('#hashResultField').style.display = '';
-  });
-
-  copyBtn?.addEventListener('click', () => {
-    const field = $('#hashResult');
-    field.select();
-    navigator.clipboard?.writeText(field.value).then(() => {
-      copyBtn.textContent = 'Copied!';
-      setTimeout(() => { copyBtn.textContent = 'Copy hash'; }, 1500);
-    }).catch(() => {
-      document.execCommand('copy');
-    });
-  });
 }
 
 function wireLoginForm() {
@@ -125,32 +84,27 @@ function wireLoginForm() {
   const errorBox = $('#loginError');
   const btn = $('#loginBtn');
 
-  const lockLeft = Auth.lockoutSecondsRemaining();
-  if (lockLeft > 0) {
-    btn.disabled = true;
-    errorBox.textContent = `Too many attempts. Try again in ${lockLeft}s.`;
-  }
-
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     errorBox.textContent = '';
     btn.disabled = true;
     btn.textContent = 'Checking...';
+    const email = $('#loginEmail').value.trim();
     const pw = $('#loginPassword').value;
     try {
-      const result = await Auth.login(pw);
+      const result = await SupaAuth.login(email, pw);
       if (result.ok) {
         await showApp();
       } else {
-        errorBox.textContent = result.error || 'Incorrect password.';
+        errorBox.textContent = result.error || 'Incorrect email or password.';
         $('#loginPassword').value = '';
         btn.disabled = false;
-        btn.textContent = 'Unlock';
+        btn.textContent = 'Sign in';
       }
     } catch (err) {
-      errorBox.textContent = 'Could not verify password. Check your connection.';
+      errorBox.textContent = 'Could not sign in. Check your connection.';
       btn.disabled = false;
-      btn.textContent = 'Unlock';
+      btn.textContent = 'Sign in';
     }
   });
 }
@@ -168,10 +122,11 @@ function showBootError(err) {
           The app hit an error while starting up. This usually means one of the
           js/ files is missing or out of date on this deployment.<br><br>
           Open the browser console (F12 → Console tab) for details, and check
-          that all files in <code>js/</code> (store.js, auth.js, sheets-api.js,
-          helpers.js, modules-data.js, module-table.js, dashboard-router.js,
-          reports.js, invoice-generator.js, settings.js, views-custom.js,
-          modal.js, boot.js) are all
+          that all files in <code>js/</code> (store.js, supabase-client.js,
+          supabase-auth.js, sheets-api.js, helpers.js, modules-data.js,
+          module-table.js, dashboard-router.js, reports.js,
+          invoice-generator.js, settings.js, views-custom.js, modal.js,
+          boot.js) are all
           present and up to date in the repo.
         </p>
         <p class="login-error" style="margin:0;">${(err && err.message) ? err.message : String(err)}</p>
@@ -182,11 +137,12 @@ function showBootError(err) {
 document.addEventListener('DOMContentLoaded', async () => {
   try {
     initLogin();
-    document.getElementById('logoutBtn')?.addEventListener('click', () => Auth.logout());
-    if (Auth.isLoggedIn()) {
+    document.getElementById('logoutBtn')?.addEventListener('click', () => SupaAuth.logout());
+    const session = await SupaAuth.getSession();
+    if (session) {
       await showApp();
     }
-    // else: login/setup screen stays visible until submitted
+    // else: login screen stays visible until submitted
   } catch (err) {
     showBootError(err);
   }
