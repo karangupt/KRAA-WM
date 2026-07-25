@@ -82,12 +82,17 @@ function closeModal() {
   editingContext = null;
 }
 
-/* ---------- Sheets sync (best-effort, silent if not configured) ---------- */
+/* ---------- Cloud sync (Sheets + Supabase, best-effort, silent if not configured) ---------- */
 async function syncCollection(moduleKey) {
-  if (!SheetsAPI.isConfigured()) return;
   const cfg = MODULES[moduleKey];
   if (!cfg) return;
-  await SheetsAPI.pushCollection(cfg.collection, Store.all(cfg.collection));
+  const records = Store.all(cfg.collection);
+  if (SheetsAPI.isConfigured()) {
+    await SheetsAPI.pushCollection(cfg.collection, records);
+  }
+  if (typeof SupabaseSync !== 'undefined') {
+    await SupabaseSync.pushCollection(cfg.collection, records);
+  }
 }
 
 async function checkSyncStatus() {
@@ -101,4 +106,3 @@ async function checkSyncStatus() {
   title.textContent = ok ? 'Connected to Google Sheets' : 'Sheets connection failed';
   sub.textContent = ok ? 'Cloud backup active' : 'Check Apps Script deployment';
 }
-
