@@ -100,7 +100,7 @@ function wireSettingsView() {
     if (!profile || profile.role !== 'owner' || !card) return;
     card.style.display = '';
 
-    const { data: members, error } = await supabaseClient.from('profiles').select('id, full_name, role');
+    const { data: members, error } = await supabaseClient.from('profiles').select('id, full_name, email, role');
     const listEl = root.querySelector('#teamMembersList');
     if (error) { listEl.textContent = 'Could not load team members: ' + error.message; return; }
     if (!members || !members.length) { listEl.textContent = 'No team members yet.'; return; }
@@ -108,8 +108,8 @@ function wireSettingsView() {
     listEl.innerHTML = members.map(m => `
       <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 0; border-top:1px solid var(--line);">
         <div>
-          <div style="font-size:13.5px;">${m.full_name || '(no name set)'}</div>
-          <div style="font-size:11px; color:var(--muted); font-family:var(--font-mono);">${m.id}</div>
+          <div style="font-size:13.5px;">${m.email || m.full_name || '(no email set — run 05-add-profile-email.sql)'}</div>
+          ${m.full_name ? `<div style="font-size:11px; color:var(--muted);">${m.full_name}</div>` : ''}
         </div>
         <select class="role-select" data-uid="${m.id}" style="padding:6px 10px; border-radius:8px; background:var(--panel-2); color:var(--text); border:1px solid var(--line);">
           ${['owner','manager','staff','family','viewer'].map(r => `<option value="${r}" ${m.role === r ? 'selected' : ''}>${r.charAt(0).toUpperCase() + r.slice(1)}</option>`).join('')}
