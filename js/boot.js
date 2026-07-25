@@ -78,19 +78,20 @@ async function pullFromSheetsIntoStore() {
   }
 }
 
-// Same safe merge pattern as Sheets above: only collections that actually
-// have rows in Supabase get overwritten locally. Before the one-time
-// migration (Settings → "Migrate to Supabase") this is a no-op, since
-// Supabase has no rows yet — nothing local gets touched.
+// Supabase is now the authoritative source for every collection this
+// logged-in user is allowed to see (RBAC/RLS decides that server-side).
+// We overwrite EVERY known collection — including with an empty array
+// when the user has no access or there's genuinely no data — otherwise
+// a collection the user can't see would keep showing whatever demo/seed
+// data this fresh browser started with, instead of correctly showing empty.
 async function pullFromSupabaseIntoStore() {
   const result = await SupabaseSync.pullAll();
   if (result && result.ok && result.data) {
     try {
       const current = JSON.parse(Store.exportJSON());
-      Object.keys(result.data).forEach(col => {
-        if (Array.isArray(result.data[col]) && result.data[col].length) {
-          current[col] = result.data[col];
-        }
+      const allCollections = [...new Set(Object.values(MODULES).map(m => m.collection))];
+      allCollections.forEach(col => {
+        current[col] = Array.isArray(result.data[col]) ? result.data[col] : [];
       });
       Store.importJSON(JSON.stringify(current));
     } catch (e) {
