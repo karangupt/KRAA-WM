@@ -26,7 +26,7 @@ const SHEETS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwJTj3UebiT2
 // now). This one just authenticates this app's requests to your Apps
 // Script backend. Set it up once in Settings → "Sync with Google Sheets"
 // → "Set up Sheets sync token" — it walks you through both sides.
-const SHEETS_SYNC_TOKEN = ''; // <-- paste the generated hash here (see Settings page)
+const SHEETS_SYNC_TOKEN = '535e809589857af6afc1aa415696137f14f2acdf1fa5552376dd4eb3003f8590'; // <-- paste the generated hash here (see Settings page)
 
 const SheetsAPI = (() => {
   const isConfigured = () => !!SHEETS_WEB_APP_URL;
