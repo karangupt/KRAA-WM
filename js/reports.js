@@ -120,7 +120,7 @@ function renderReports() {
     <div class="table-wrap"><table class="ledger">
       <thead><tr><th>Category</th><th>Amount</th></tr></thead>
       <tbody>${catRows.map(([cat, amt]) => `<tr><td class="name-cell">${cat}</td><td>${fmt(amt)}</td></tr>`).join('')}</tbody>
-    </table></div>` : `<div class="empty-state"><div class="glyph">◒</div>No expenses logged yet.</div>`}
+    </table></div>` : `<div class="empty-state"><div class="glyph"><i data-lucide="receipt"></i></div>No expenses logged yet.</div>`}
   </div>
 
   <div class="card">
@@ -129,7 +129,7 @@ function renderReports() {
     <div class="table-wrap"><table class="ledger">
       <thead><tr><th>Source</th><th>Amount</th></tr></thead>
       <tbody>${incomeRows.map(([src, amt]) => `<tr><td class="name-cell">${src}</td><td>${fmt(amt)}</td></tr>`).join('')}</tbody>
-    </table></div>` : `<div class="empty-state"><div class="glyph">◓</div>No other income logged yet.</div>`}
+    </table></div>` : `<div class="empty-state"><div class="glyph"><i data-lucide="wallet"></i></div>No other income logged yet.</div>`}
   </div>
 
   <div class="card">
@@ -138,7 +138,7 @@ function renderReports() {
     <div class="table-wrap"><table class="ledger">
       <thead><tr><th>Status</th><th>Count</th></tr></thead>
       <tbody>${Object.entries(statusCounts).map(([st, count]) => `<tr><td>${tagFor(st)}</td><td>${count}</td></tr>`).join('')}</tbody>
-    </table></div>` : `<div class="empty-state"><div class="glyph">◨</div>No bookings logged yet.</div>`}
+    </table></div>` : `<div class="empty-state"><div class="glyph"><i data-lucide="calendar-check"></i></div>No bookings logged yet.</div>`}
   </div>`;
 }
 
@@ -199,4 +199,3 @@ function renderNetWorth() {
     <p style="color:var(--muted); font-size:12px; margin-top:12px;">Pulled live from Bank Accounts, FD/RD, Investments and Assets &amp; Liabilities — update those modules and this updates automatically.${excludedBankTotal > 0 ? ` Excludes ${fmt(excludedBankTotal)} in Sukanya/Minor/Spouse accounts — that money isn't counted as your personal net worth.` : ''}</p>
   </div>`;
 }
-
