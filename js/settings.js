@@ -43,27 +43,25 @@ function renderSettingsView() {
     <div id="supaSyncStatus" style="margin-top:10px; font-size:12.5px; color:var(--muted);"></div>
   </div>
 
+  <div class="card" id="teamAccessCard" style="display:none; border-left-color:var(--amber);">
+    <div class="section-head"><h2>Team &amp; Access</h2></div>
+    <p style="color:var(--muted); font-size:13px; margin-bottom:14px;">
+      To add a new team member: create their login in <strong style="color:var(--text);">Supabase Dashboard → Authentication → Users → Add user</strong> (turn on "Auto Confirm User"). Then come back here and set what they can access — no SQL needed.
+    </p>
+    <div id="teamMembersList" style="color:var(--muted); font-size:13px;">Loading team members...</div>
+  </div>
+
   <div class="card">
     <div class="section-head"><h2>Security</h2></div>
     <p style="color:var(--muted); font-size:13px; margin-bottom:14px;">
-      Login mode: <strong style="color:var(--text);">${sheetsOn ? 'Google Sheets (server-side check)' : 'Universal password (client-side hash)'}</strong><br><br>
-      ${sheetsOn
-        ? 'Password is verified by your Apps Script backend — it is never exposed in this app\'s code.'
-        : 'The password is checked against a hash stored in js/auth.js. There\'s no email-based recovery — if forgotten, generate a new hash below (or on the login screen) and update the code with it.'}
+      Login mode: <strong style="color:var(--text);">Supabase Auth (per-user email + password)</strong><br><br>
+      Each person signs in with their own email and password. Forgotten passwords are reset by the admin (Owner) from the Supabase dashboard — Authentication → Users → select the person → reset password.
     </p>
     <div style="border-top:1px solid var(--line); padding-top:14px;">
-      <label style="display:block; font-size:11.5px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; margin-bottom:8px;">Change / reset password</label>
-      <div class="field"><label>New password</label><input type="text" id="chgPwInput" placeholder="e.g. Karan@Projector2027"></div>
-      <button class="btn secondary" id="chgPwGenBtn" style="margin-top:8px;">Generate hash</button>
-      <div id="chgPwResultField" style="display:none; margin-top:12px;">
-        <div class="field"><label>New hash — copy this</label><input type="text" id="chgPwResult" readonly onclick="this.select()"></div>
-        <button class="btn secondary" id="chgPwCopyBtn" style="width:100%;">Copy hash</button>
-        <p style="color:var(--muted); font-size:11.5px; margin-top:10px; line-height:1.5;">
-          ${sheetsOn
-            ? 'Paste this into the Apps Script <code>setAppPassword()</code> hash property (or run setAppPassword() with the plain password instead), then redeploy — see README Part 2.'
-            : 'Paste this into <code>js/auth.js</code> as:<br><code>const UNIVERSAL_PASSWORD_HASH = \'paste-here\';</code> then commit &amp; deploy.'}
-        </p>
-      </div>
+      <label style="display:block; font-size:11.5px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; margin-bottom:8px;">Change your own password</label>
+      <div class="field"><label>New password</label><input type="password" id="chgPwInput" placeholder="At least 6 characters" autocomplete="new-password"></div>
+      <button class="btn secondary" id="chgPwGenBtn" style="margin-top:8px;">Update password</button>
+      <div id="chgPwResultField" style="margin-top:12px; font-size:12.5px;"></div>
     </div>
   </div>
 
@@ -83,21 +81,54 @@ function wireSettingsView() {
 
   root.querySelector('#chgPwGenBtn')?.addEventListener('click', async () => {
     const pw = root.querySelector('#chgPwInput').value;
-    if (!pw) { alert('Type a new password first.'); return; }
-    const hash = await sha256Hex(pw);
-    root.querySelector('#chgPwResult').value = hash;
-    root.querySelector('#chgPwResultField').style.display = '';
+    const resultBox = root.querySelector('#chgPwResultField');
+    if (!pw || pw.length < 6) { resultBox.innerHTML = '<span style="color:var(--danger);">Password must be at least 6 characters.</span>'; return; }
+    resultBox.textContent = 'Updating...';
+    const { error } = await supabaseClient.auth.updateUser({ password: pw });
+    if (error) {
+      resultBox.innerHTML = `<span style="color:var(--danger);">${error.message}</span>`;
+    } else {
+      resultBox.innerHTML = '<span style="color:var(--teal);">Password updated. Use it next time you sign in.</span>';
+      root.querySelector('#chgPwInput').value = '';
+    }
   });
 
-  root.querySelector('#chgPwCopyBtn')?.addEventListener('click', () => {
-    const field = root.querySelector('#chgPwResult');
-    field.select();
-    navigator.clipboard?.writeText(field.value).then(() => {
-      const btn = root.querySelector('#chgPwCopyBtn');
-      btn.textContent = 'Copied!';
-      setTimeout(() => { btn.textContent = 'Copy hash'; }, 1500);
-    }).catch(() => { document.execCommand('copy'); });
-  });
+  // Team & Access — only shown to the Owner
+  (async () => {
+    const profile = await SupaAuth.getProfile();
+    const card = root.querySelector('#teamAccessCard');
+    if (!profile || profile.role !== 'owner' || !card) return;
+    card.style.display = '';
+
+    const { data: members, error } = await supabaseClient.from('profiles').select('id, full_name, role');
+    const listEl = root.querySelector('#teamMembersList');
+    if (error) { listEl.textContent = 'Could not load team members: ' + error.message; return; }
+    if (!members || !members.length) { listEl.textContent = 'No team members yet.'; return; }
+
+    listEl.innerHTML = members.map(m => `
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 0; border-top:1px solid var(--line);">
+        <div>
+          <div style="font-size:13.5px;">${m.full_name || '(no name set)'}</div>
+          <div style="font-size:11px; color:var(--muted); font-family:var(--font-mono);">${m.id}</div>
+        </div>
+        <select class="role-select" data-uid="${m.id}" style="padding:6px 10px; border-radius:8px; background:var(--panel-2); color:var(--text); border:1px solid var(--line);">
+          ${['owner','manager','staff','family','viewer'].map(r => `<option value="${r}" ${m.role === r ? 'selected' : ''}>${r.charAt(0).toUpperCase() + r.slice(1)}</option>`).join('')}
+        </select>
+      </div>
+    `).join('');
+
+    listEl.querySelectorAll('.role-select').forEach(sel => {
+      sel.addEventListener('change', async () => {
+        sel.disabled = true;
+        const { error: updErr } = await supabaseClient
+          .from('profiles')
+          .update({ role: sel.value })
+          .eq('id', sel.dataset.uid);
+        sel.disabled = false;
+        if (updErr) alert('Could not update role: ' + updErr.message);
+      });
+    });
+  })();
 
   root.querySelector('#backupBtn')?.addEventListener('click', () => {
     const data = Store.exportJSON();
