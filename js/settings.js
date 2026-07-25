@@ -31,6 +31,18 @@ function renderSettingsView() {
   </div>
   ` : ''}
 
+  <div class="card" style="border-left-color:var(--teal);">
+    <div class="section-head"><h2>Sync with Supabase</h2></div>
+    <p style="color:var(--muted); font-size:13px; margin-bottom:14px;">
+      This is the real multi-user database (needed for staff logins and role-based access). <strong style="color:var(--text);">Migrate to Supabase</strong> is a one-time step — push everything currently on this device up to Supabase. After that, every login (yours and staff) pulls the latest data automatically, and every save pushes back up. <strong style="color:var(--text);">Pull latest</strong> re-fetches on demand mid-session.
+    </p>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <button class="btn secondary" id="supaPullBtn">↓ Pull latest from Supabase</button>
+      <button class="btn" id="supaMigrateBtn">↑ Migrate / push all local data to Supabase</button>
+    </div>
+    <div id="supaSyncStatus" style="margin-top:10px; font-size:12.5px; color:var(--muted);"></div>
+  </div>
+
   <div class="card">
     <div class="section-head"><h2>Security</h2></div>
     <p style="color:var(--muted); font-size:13px; margin-bottom:14px;">
@@ -170,6 +182,38 @@ function wireSettingsView() {
       : `All ${done} sheets pushed successfully.`;
   });
 
+  root.querySelector('#supaPullBtn')?.addEventListener('click', async () => {
+    const btn = $('#supaPullBtn');
+    const status = $('#supaSyncStatus');
+    btn.disabled = true;
+    btn.textContent = 'Pulling...';
+    status.textContent = 'Fetching latest data from Supabase...';
+    await pullFromSupabaseIntoStore();
+    btn.disabled = false;
+    btn.textContent = '↓ Pull latest from Supabase';
+    status.textContent = 'Done — this device now has the latest data from Supabase.';
+    render();
+  });
+
+  root.querySelector('#supaMigrateBtn')?.addEventListener('click', async () => {
+    const btn = $('#supaMigrateBtn');
+    const status = $('#supaSyncStatus');
+    btn.disabled = true;
+    const collections = [...new Set(Object.values(MODULES).map(m => m.collection))];
+    let done = 0, failed = [];
+    for (const col of collections) {
+      const records = Store.all(col);
+      const result = await SupabaseSync.pushCollection(col, records);
+      if (result.ok) done++; else failed.push(col);
+      status.textContent = `Pushing ${done + failed.length} of ${collections.length} collections...`;
+    }
+    btn.disabled = false;
+    btn.textContent = '↑ Migrate / push all local data to Supabase';
+    status.textContent = failed.length
+      ? `Done, but ${failed.length} collection(s) failed: ${failed.join(', ')}. Check the browser console for details.`
+      : `All ${done} collections migrated to Supabase successfully.`;
+  });
+
   root.querySelector('#revealDangerBtn')?.addEventListener('click', () => {
     const content = $('#dangerZoneContent');
     const btn = $('#revealDangerBtn');
@@ -184,5 +228,3 @@ function wireSettingsView() {
     render();
   });
 }
-
-
