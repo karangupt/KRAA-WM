@@ -133,6 +133,15 @@ function resetInvoiceDraft() {
 
 const todayStr = () => new Date().toISOString().slice(0,10);
 
+// SHA-256 hex digest via the browser's built-in Web Crypto API.
+// Used only for the Google Sheets sync token (Settings → Sync with
+// Google Sheets) — nothing to do with login, which is Supabase Auth.
+async function sha256Hex(text) {
+  const enc = new TextEncoder().encode(text);
+  const buf = await crypto.subtle.digest('SHA-256', enc);
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 /* ---------- Module configs: drives generic table + form rendering ---------- */
 function invoicePaidSoFar(invoiceId) {
   return Store.all('payments')
