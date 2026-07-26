@@ -126,16 +126,43 @@ function wireSettingsView() {
     if (!members || !members.length) { listEl.textContent = 'No team members yet.'; return; }
 
     listEl.innerHTML = members.map(m => `
-      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 0; border-top:1px solid var(--line);">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 0; border-top:1px solid var(--line); flex-wrap:wrap;">
         <div>
           <div style="font-size:13.5px;">${m.email || m.full_name || '(no email set — run 05-add-profile-email.sql)'}</div>
           ${m.full_name ? `<div style="font-size:11px; color:var(--muted);">${m.full_name}</div>` : ''}
         </div>
-        <select class="role-select" data-uid="${m.id}" style="padding:6px 10px; border-radius:8px; background:var(--panel-2); color:var(--text); border:1px solid var(--line);">
-          ${['owner','manager','staff','family','viewer'].map(r => `<option value="${r}" ${m.role === r ? 'selected' : ''}>${r.charAt(0).toUpperCase() + r.slice(1)}</option>`).join('')}
-        </select>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <select class="role-select" data-uid="${m.id}" style="padding:6px 10px; border-radius:8px; background:var(--panel-2); color:var(--text); border:1px solid var(--line);">
+            ${['owner','manager','staff','family','viewer'].map(r => `<option value="${r}" ${m.role === r ? 'selected' : ''}>${r.charAt(0).toUpperCase() + r.slice(1)}</option>`).join('')}
+          </select>
+          <button class="btn secondary reset-pw-btn" data-uid="${m.id}" data-email="${m.email || ''}" style="padding:6px 10px; font-size:12px;">Reset password</button>
+        </div>
       </div>
     `).join('');
+
+    listEl.querySelectorAll('.reset-pw-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const newPw = prompt(`New password for ${btn.dataset.email || btn.dataset.uid}:\n(at least 6 characters)`);
+        if (!newPw) return;
+        if (newPw.length < 6) { alert('Password must be at least 6 characters.'); return; }
+        btn.disabled = true;
+        btn.textContent = 'Resetting...';
+        try {
+          const { data, error } = await supabaseClient.functions.invoke('bright-action', {
+            body: { targetUserId: btn.dataset.uid, newPassword: newPw }
+          });
+          if (error || (data && data.error)) {
+            alert('Could not reset password: ' + (error?.message || data.error));
+          } else {
+            alert('Password reset successfully.');
+          }
+        } catch (e) {
+          alert('Could not reset password: ' + e.message);
+        }
+        btn.disabled = false;
+        btn.textContent = 'Reset password';
+      });
+    });
 
     listEl.querySelectorAll('.role-select').forEach(sel => {
       sel.addEventListener('change', async () => {
