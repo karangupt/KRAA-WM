@@ -27,12 +27,30 @@ async function showApp() {
   if (typeof SupabaseSync !== 'undefined') {
     await pullFromSupabaseIntoStore();
   }
+  await applyRoleBasedNav();
 
   $('#loginScreen').style.display = 'none';
   $('#appRoot').style.display = '';
   initChrome();
   checkSyncStatus();
   navigateTo('dashboard');
+}
+
+// Hides sidebar sections the current role has no access to (the actual
+// data access is already enforced by Supabase RLS — this just keeps
+// people from seeing menu items that would only ever show empty anyway).
+async function applyRoleBasedNav() {
+  if (typeof SupaAuth === 'undefined') return;
+  try {
+    const profile = await SupaAuth.getProfile();
+    const role = profile ? profile.role : 'owner'; // fail-open to owner if profile lookup fails, so no one gets locked out of their own sidebar by a glitch
+    $$('.nav-group').forEach(group => {
+      const allowed = (group.dataset.roles || '').split(',').map(s => s.trim());
+      group.style.display = allowed.includes(role) ? '' : 'none';
+    });
+  } catch (e) {
+    console.error('Could not apply role-based nav, showing everything', e);
+  }
 }
 
 // Defense-in-depth against Google Sheets auto-converting date-like text into
