@@ -99,6 +99,19 @@ function renderReports() {
   expenses.forEach(e => { expenseByCategory[e.category || 'Uncategorised'] = (expenseByCategory[e.category || 'Uncategorised'] || 0) + Number(e.amount || 0); });
   const catRows = Object.entries(expenseByCategory).sort((a, b) => b[1] - a[1]);
 
+  const thisMonthKey = todayStr().slice(0, 7);
+  const thisYearKey = todayStr().slice(0, 4);
+  const expenseByCategoryMonth = {};
+  const expenseByCategoryYear = {};
+  expenses.forEach(e => {
+    const cat = e.category || 'Uncategorised';
+    if ((e.date || '').startsWith(thisMonthKey)) expenseByCategoryMonth[cat] = (expenseByCategoryMonth[cat] || 0) + Number(e.amount || 0);
+    if ((e.date || '').startsWith(thisYearKey)) expenseByCategoryYear[cat] = (expenseByCategoryYear[cat] || 0) + Number(e.amount || 0);
+  });
+  const catRowsMonth = Object.entries(expenseByCategoryMonth).sort((a, b) => b[1] - a[1]);
+  const catRowsYear = Object.entries(expenseByCategoryYear).sort((a, b) => b[1] - a[1]);
+  const monthLabelText = new Date(thisMonthKey + '-01').toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+
   const incomeBySource = {};
   otherIncome.forEach(o => { incomeBySource[o.type || 'Other'] = (incomeBySource[o.type || 'Other'] || 0) + Number(o.amount || 0); });
   const incomeRows = Object.entries(incomeBySource).sort((a, b) => b[1] - a[1]);
@@ -115,7 +128,27 @@ function renderReports() {
   </div>
 
   <div class="card">
-    <div class="section-head"><h2>Expenses by category</h2></div>
+    <div class="section-head"><h2>Expenses by category — ${monthLabelText}</h2></div>
+    ${catRowsMonth.length ? `
+    <div class="table-wrap"><table class="ledger">
+      <thead><tr><th>Category</th><th>Amount</th></tr></thead>
+      <tbody>${catRowsMonth.map(([cat, amt]) => `<tr><td class="name-cell">${cat}</td><td>${fmt(amt)}</td></tr>`).join('')}</tbody>
+      <tfoot><tr><td><strong>Total</strong></td><td><strong>${fmt(catRowsMonth.reduce((s, [, a]) => s + a, 0))}</strong></td></tr></tfoot>
+    </table></div>` : `<div class="empty-state"><div class="glyph"><i data-lucide="receipt"></i></div>No expenses logged this month yet.</div>`}
+  </div>
+
+  <div class="card">
+    <div class="section-head"><h2>Expenses by category — ${thisYearKey}</h2></div>
+    ${catRowsYear.length ? `
+    <div class="table-wrap"><table class="ledger">
+      <thead><tr><th>Category</th><th>Amount</th></tr></thead>
+      <tbody>${catRowsYear.map(([cat, amt]) => `<tr><td class="name-cell">${cat}</td><td>${fmt(amt)}</td></tr>`).join('')}</tbody>
+      <tfoot><tr><td><strong>Total</strong></td><td><strong>${fmt(catRowsYear.reduce((s, [, a]) => s + a, 0))}</strong></td></tr></tfoot>
+    </table></div>` : `<div class="empty-state"><div class="glyph"><i data-lucide="receipt"></i></div>No expenses logged this year yet.</div>`}
+  </div>
+
+  <div class="card">
+    <div class="section-head"><h2>Expenses by category — All Time</h2></div>
     ${catRows.length ? `
     <div class="table-wrap"><table class="ledger">
       <thead><tr><th>Category</th><th>Amount</th></tr></thead>
