@@ -79,7 +79,11 @@ const MODULES = {
     fields: [
       { name: 'date', label: 'Date', type: 'date', required: true },
       { name: 'expenseType', label: 'Personal or Corporate?', type: 'select', options: ['Corporate','Personal'], required: true },
-      { name: 'category', label: 'Category', type: 'text' },
+      { name: 'category', label: 'Category', type: 'select', options: [
+        'Grocery', 'Milk & Dairy', 'Fuel', 'Clothing', 'Medical & Health', 'Food & Dining', 'Utilities (Electricity/Water/Internet)', 'Rent',
+        'Equipment Maintenance', 'Equipment Purchase', 'Salaries & Wages', 'Marketing & Advertising', 'Office Supplies', 'Hardware & Tools', 'Transport & Delivery', 'Insurance Premium',
+        'Travel', 'Education', 'Entertainment', 'Loan / EMI', 'Miscellaneous'
+      ] },
       { name: 'desc', label: 'Description', type: 'text' },
       { name: 'paymentMode', label: 'Paid via', type: 'select', options: ['Cash','UPI','Credit Card'] },
       { name: 'creditCardId', label: 'Which credit card?', type: 'select', source: 'creditCards', optLabel: 'cardName', showIf: { field: 'paymentMode', equals: 'Credit Card' } },
