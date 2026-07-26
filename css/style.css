@@ -255,7 +255,7 @@ table.ledger thead th.sortable-th:hover{color:var(--amber);}
 .invoice-bank-sign{ display:flex; justify-content:space-between; gap:16px; font-size:11px; }
 .invoice-paid-stamp{
   display:inline-block; border:3px solid #c0392b; color:#c0392b; font-weight:bold; font-size:20px;
-  padding:6px 18px; transform:rotate(-8deg); border-radius:6px; left:-90px;
+  padding:6px 18px; transform:rotate(-8deg); border-radius:6px;
 }
 
 @media print{
