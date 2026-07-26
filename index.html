@@ -1,156 +1,234 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Workspace — Projector Solutions</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=51">
-</head>
-<body>
+/* Workspace App — Reports, Net Worth dashboard, stock price refresh */
 
-<!-- LOGIN GATE -->
-<div class="login-screen" id="loginScreen">
-  <form class="login-card" id="loginForm">
-    <div class="login-tag">Projector Solutions</div>
-    <h2>Sign in</h2>
-    <p class="login-sub">Enter your email and password to access Workspace.</p>
-    <div class="field">
-      <label>Email</label>
-      <input type="email" id="loginEmail" autocomplete="username" required autofocus>
-    </div>
-    <div class="field">
-      <label>Password</label>
-      <input type="password" id="loginPassword" autocomplete="current-password" required>
-    </div>
-    <button type="submit" class="btn" id="loginBtn">Sign in</button>
-    <div class="login-error" id="loginError"></div>
-    <p style="text-align:center; margin-top:14px; color:var(--muted); font-size:12px;">
-      Forgot your password, or don't have an account yet? Contact your admin.
-    </p>
-  </form>
-</div>
+function printAnnualInvoiceList() {
+  const invoices = Store.all('invoices');
+  const years = [...new Set(invoices.map(i => (i.date || '').slice(0, 4)).filter(Boolean))].sort().reverse();
+  const defaultYear = years[0] || todayStr().slice(0, 4);
+  const year = prompt(`Print invoice list for which year?${years.length ? ' (years with data: ' + years.join(', ') + ')' : ''}`, defaultYear);
+  if (!year) return;
 
-<div class="app" id="appRoot" style="display:none;">
+  const yearInvoices = invoices.filter(i => (i.date || '').startsWith(year)).sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+  const total = yearInvoices.reduce((s, i) => s + Number(i.amount || 0), 0);
 
-  <!-- SIDEBAR -->
-  <aside class="sidebar" id="sidebar">
-    <div class="brand">
-      <div class="brand-tag">Workspace</div>
-      <div class="brand-sub">Projector Solutions</div>
-    </div>
+  const html = `
+  <div class="invoice-sheet">
+    <div class="invoice-title">INVOICE LIST — ${year}</div>
+    <div style="margin-bottom:10px;">${COMPANY_INFO.name} — ${COMPANY_INFO.addressLines.join(', ')}</div>
+    <table class="invoice-items">
+      <thead><tr><th>Number</th><th>Type</th><th>Date</th><th>Customer</th><th>Amount</th><th>Status</th></tr></thead>
+      <tbody>
+        ${yearInvoices.map(i => `<tr><td>${i.number}</td><td>${i.docType || 'Invoice'}</td><td>${fmtDate(i.date)}</td><td>${i.customerName || '—'}</td><td>${fmt(i.amount)}</td><td>${i.status}</td></tr>`).join('')}
+      </tbody>
+      <tfoot><tr><td colspan="4" style="text-align:right;"><strong>Total (${yearInvoices.length} invoice${yearInvoices.length===1?'':'s'})</strong></td><td colspan="2"><strong>${fmt(total)}</strong></td></tr></tfoot>
+    </table>
+  </div>`;
 
-    <nav class="nav">
-      <button class="nav-item active" data-view="dashboard"><i data-lucide="layout-dashboard" class="nav-ico"></i>Dashboard</button>
+  $('#genericPrintArea').innerHTML = html;
+  const originalTitle = document.title;
+  document.title = `Invoice List ${year}`;
+  window.print();
+  setTimeout(() => { document.title = originalTitle; }, 500);
+}
 
-      <div class="nav-group" data-roles="owner,manager,staff,viewer">
-        <div class="nav-group-label">CRM</div>
-        <button class="nav-item" data-view="customer"><i data-lucide="users" class="nav-ico"></i>Customers</button>
-        <button class="nav-item" data-view="vendor"><i data-lucide="truck" class="nav-ico"></i>Vendors</button>
-        <button class="nav-item" data-view="staff"><i data-lucide="user-cog" class="nav-ico"></i>Staff</button>
-      </div>
+async function refreshStockPrices() {
+  if (!SheetsAPI.isConfigured()) {
+    alert('Live price fetching needs the free Google Sheets backend connected (browsers can\'t call stock market APIs directly). See README Part 3 — Live stock prices.');
+    return;
+  }
+  const btn = $('#refreshPrices');
+  const items = Store.all('investments').filter(i => i.ticker);
+  if (!items.length) {
+    alert('Add a ticker symbol to at least one investment first (e.g. AAPL, TSLA, or an Indian symbol).');
+    return;
+  }
+  if (btn) { btn.disabled = true; btn.textContent = '↻ Refreshing...'; }
 
-      <div class="nav-group" data-roles="owner,manager,staff,viewer">
-        <div class="nav-group-label">Rental Operations</div>
-        <button class="nav-item" data-view="bookingPayments"><i data-lucide="calendar-check" class="nav-ico"></i>Bookings</button>
-        <button class="nav-item" data-view="inventory"><i data-lucide="projector" class="nav-ico"></i>Equipment</button>
-      </div>
+  // Fetch USD→INR once if any US stocks are present, reuse for all of them.
+  let usdInr = null;
+  if (items.some(i => i.type === 'US Stock')) {
+    const fx = await SheetsAPI.fetchFxRate('USD', 'INR');
+    if (fx && fx.ok) usdInr = fx.rate;
+  }
 
-      <div class="nav-group" data-roles="owner,manager,staff,viewer">
-        <div class="nav-group-label">Billing</div>
-        <button class="nav-item" data-view="invoice"><i data-lucide="file-text" class="nav-ico"></i>Invoices</button>
-        <button class="nav-item" data-view="payments"><i data-lucide="banknote" class="nav-ico"></i>Payments</button>
-        <button class="nav-item" data-view="expense"><i data-lucide="receipt" class="nav-ico"></i>Expenses</button>
-      </div>
+  let updated = 0, failed = [];
+  for (const item of items) {
+    const result = await SheetsAPI.fetchStockPrice(item.ticker);
+    if (result && result.ok && result.price) {
+      const qty = Number(item.qty || 1);
+      let priceInInr = result.price;
+      if (item.type === 'US Stock') {
+        if (!usdInr) { failed.push(item.ticker + ' (no FX rate)'); continue; }
+        priceInInr = result.price * usdInr;
+      }
+      Store.update('investments', item.id, { current: Math.round(priceInInr * qty) });
+      updated++;
+    } else {
+      failed.push(item.ticker);
+    }
+  }
 
-      <div class="nav-group" data-roles="owner,family">
-        <div class="nav-group-label">Finance &amp; Wealth</div>
-        <button class="nav-item" data-view="bank"><i data-lucide="landmark" class="nav-ico"></i>Bank Accounts</button>
-        <button class="nav-item" data-view="fdrd"><i data-lucide="piggy-bank" class="nav-ico"></i>FD / RD</button>
-        <button class="nav-item" data-view="creditcards"><i data-lucide="credit-card" class="nav-ico"></i>Credit Cards</button>
-        <button class="nav-item" data-view="giftcards"><i data-lucide="gift" class="nav-ico"></i>Gift Cards &amp; Wallets</button>
-        <button class="nav-item" data-view="investments"><i data-lucide="trending-up" class="nav-ico"></i>Investments</button>
-        <button class="nav-item" data-view="assets"><i data-lucide="scale" class="nav-ico"></i>Assets &amp; Liabilities</button>
-        <button class="nav-item" data-view="personal"><i data-lucide="repeat" class="nav-ico"></i>Recurring Bills &amp; Utilities</button>
-        <button class="nav-item" data-view="otherIncome"><i data-lucide="wallet" class="nav-ico"></i>Other Income</button>
-        <button class="nav-item" data-view="insurance"><i data-lucide="shield-check" class="nav-ico"></i>Insurance</button>
-        <button class="nav-item" data-view="networth"><i data-lucide="pie-chart" class="nav-ico"></i>Net Worth</button>
-      </div>
+  render();
+  syncCollection('investments');
+  if (btn) { btn.disabled = false; btn.textContent = '↻ Refresh Prices'; }
+  if (failed.length) alert(`Updated ${updated} of ${items.length}. Could not fetch: ${failed.join(', ')}`);
+}
 
-      <div class="nav-group" data-roles="owner,manager,staff,viewer">
-        <div class="nav-group-label">Reports</div>
-        <button class="nav-item" data-view="reports"><i data-lucide="bar-chart-3" class="nav-ico"></i>Reports</button>
-      </div>
+/* ---------- Reports ---------- */
+function renderReports() {
+  const invoices = Store.all('invoices');
+  const payments = Store.all('payments');
+  const expenses = Store.all('expenses');
+  const bookings = Store.all('bookings');
+  const otherIncome = Store.all('otherIncome');
 
-      <div class="nav-group" data-roles="owner,family">
-        <div class="nav-group-label">Family &amp; Documents</div>
-        <button class="nav-item" data-view="documents"><i data-lucide="folder-lock" class="nav-ico"></i>Document Vault</button>
-        <button class="nav-item" data-view="familyNotes"><i data-lucide="notebook-pen" class="nav-ico"></i>Family Notes</button>
-      </div>
+  const businessRevenue = invoices.reduce((s, i) => s + Number(i.amount || 0), 0);
+  const otherIncomeTotal = otherIncome.reduce((s, o) => s + Number(o.amount || 0), 0);
+  const revenue = businessRevenue + otherIncomeTotal;
+  const totalExpenses = expenses.reduce((s, e) => s + Number(e.amount || 0), 0);
+  const profit = revenue - totalExpenses;
 
-      <div class="nav-group-label">System</div>
-      <button class="nav-item" data-view="settings"><i data-lucide="settings" class="nav-ico"></i>Settings</button>
-    </nav>
+  const paidPerInvoice = {};
+  payments.forEach(p => { paidPerInvoice[p.invoiceId] = (paidPerInvoice[p.invoiceId] || 0) + Number(p.amount || 0); });
+  const outstanding = invoices.reduce((s, i) => {
+    const paid = paidPerInvoice[i.id] || 0;
+    const due = Number(i.amount || 0) - paid;
+    return s + (due > 0 ? due : 0);
+  }, 0);
 
-    <div class="sync-box">
-      <div class="sync-dot" id="syncDot"></div>
-      <div>
-        <div class="sync-title" id="syncTitle">Local storage mode</div>
-        <div class="sync-sub" id="syncSub">Sheets not connected</div>
-      </div>
-    </div>
-  </aside>
+  const expenseByCategory = {};
+  expenses.forEach(e => { expenseByCategory[e.category || 'Uncategorised'] = (expenseByCategory[e.category || 'Uncategorised'] || 0) + Number(e.amount || 0); });
+  const catRows = Object.entries(expenseByCategory).sort((a, b) => b[1] - a[1]);
 
-  <!-- BACKDROP for mobile -->
-  <div class="backdrop" id="backdrop"></div>
+  const thisMonthKey = todayStr().slice(0, 7);
+  const thisYearKey = todayStr().slice(0, 4);
+  const expenseByCategoryMonth = {};
+  const expenseByCategoryYear = {};
+  expenses.forEach(e => {
+    const cat = e.category || 'Uncategorised';
+    if ((e.date || '').startsWith(thisMonthKey)) expenseByCategoryMonth[cat] = (expenseByCategoryMonth[cat] || 0) + Number(e.amount || 0);
+    if ((e.date || '').startsWith(thisYearKey)) expenseByCategoryYear[cat] = (expenseByCategoryYear[cat] || 0) + Number(e.amount || 0);
+  });
+  const catRowsMonth = Object.entries(expenseByCategoryMonth).sort((a, b) => b[1] - a[1]);
+  const catRowsYear = Object.entries(expenseByCategoryYear).sort((a, b) => b[1] - a[1]);
+  const monthLabelText = new Date(thisMonthKey + '-01').toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
 
-  <!-- MAIN -->
-  <main class="main">
-    <header class="topbar">
-      <button class="hamburger" id="hamburger" aria-label="Menu"><i data-lucide="menu"></i></button>
-      <h1 class="view-title" id="viewTitle">Dashboard</h1>
-      <div class="topbar-right">
-        <span class="date-chip" id="todayChip"></span>
-        <button class="btn secondary" id="logoutBtn" style="padding:6px 12px; font-size:12px;">Log out</button>
-      </div>
-    </header>
+  const incomeBySource = {};
+  otherIncome.forEach(o => { incomeBySource[o.type || 'Other'] = (incomeBySource[o.type || 'Other'] || 0) + Number(o.amount || 0); });
+  const incomeRows = Object.entries(incomeBySource).sort((a, b) => b[1] - a[1]);
 
-    <div class="view-scroll" id="viewRoot">
-      <!-- Views are injected here by app.js -->
-    </div>
-  </main>
-</div>
+  const statusCounts = {};
+  bookings.forEach(b => { statusCounts[b.status || 'unknown'] = (statusCounts[b.status || 'unknown'] || 0) + 1; });
 
-<!-- Generic modal for add/edit forms -->
-<div class="modal-backdrop" id="modalBackdrop">
-  <div class="modal" id="modal">
-    <div class="modal-head">
-      <h3 id="modalTitle">Add record</h3>
-      <button class="modal-close" id="modalClose"><i data-lucide="x"></i></button>
-    </div>
-    <form id="modalForm" class="modal-body"></form>
+  return `
+  <div class="kpi-row">
+    <div class="kpi"><div class="kpi-label">Total Revenue</div><div class="kpi-value">${fmt(revenue)}</div><div class="kpi-sub">Business ${fmt(businessRevenue)} + Other Income ${fmt(otherIncomeTotal)}</div></div>
+    <div class="kpi"><div class="kpi-label">Total Expenses</div><div class="kpi-value">${fmt(totalExpenses)}</div></div>
+    <div class="kpi"><div class="kpi-label">Net Profit</div><div class="kpi-value" style="color:${profit >= 0 ? 'var(--teal)' : 'var(--danger)'}">${fmt(profit)}</div></div>
+    <div class="kpi"><div class="kpi-label">Outstanding Payments</div><div class="kpi-value">${fmt(outstanding)}</div></div>
   </div>
-</div>
 
-<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
-<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-<script src="js/store.js?v=51"></script>
-<script src="js/supabase-client.js?v=51"></script>
-<script src="js/supabase-auth.js?v=51"></script>
-<script src="js/supabase-sync.js?v=51"></script>
-<script src="js/sheets-api.js?v=51"></script>
-<script src="js/helpers.js?v=51"></script>
-<script src="js/modules-data.js?v=51"></script>
-<script src="js/module-table.js?v=51"></script>
-<script src="js/dashboard-router.js?v=51"></script>
-<script src="js/reports.js?v=51"></script>
-<script src="js/invoice-generator.js?v=51"></script>
-<script src="js/settings.js?v=51"></script>
-<script src="js/views-custom.js?v=51"></script>
-<script src="js/modal.js?v=51"></script>
-<script src="js/boot.js?v=51"></script>
-<div id="genericPrintArea" style="display:none;"></div>
+  <div class="card">
+    <div class="section-head"><h2>Expenses by category — ${monthLabelText}</h2></div>
+    ${catRowsMonth.length ? `
+    <div class="table-wrap"><table class="ledger">
+      <thead><tr><th>Category</th><th>Amount</th></tr></thead>
+      <tbody>${catRowsMonth.map(([cat, amt]) => `<tr><td class="name-cell">${cat}</td><td>${fmt(amt)}</td></tr>`).join('')}</tbody>
+      <tfoot><tr><td><strong>Total</strong></td><td><strong>${fmt(catRowsMonth.reduce((s, [, a]) => s + a, 0))}</strong></td></tr></tfoot>
+    </table></div>` : `<div class="empty-state"><div class="glyph"><i data-lucide="receipt"></i></div>No expenses logged this month yet.</div>`}
+  </div>
 
-</body>
-</html>
+  <div class="card">
+    <div class="section-head"><h2>Expenses by category — ${thisYearKey}</h2></div>
+    ${catRowsYear.length ? `
+    <div class="table-wrap"><table class="ledger">
+      <thead><tr><th>Category</th><th>Amount</th></tr></thead>
+      <tbody>${catRowsYear.map(([cat, amt]) => `<tr><td class="name-cell">${cat}</td><td>${fmt(amt)}</td></tr>`).join('')}</tbody>
+      <tfoot><tr><td><strong>Total</strong></td><td><strong>${fmt(catRowsYear.reduce((s, [, a]) => s + a, 0))}</strong></td></tr></tfoot>
+    </table></div>` : `<div class="empty-state"><div class="glyph"><i data-lucide="receipt"></i></div>No expenses logged this year yet.</div>`}
+  </div>
+
+  <div class="card">
+    <div class="section-head"><h2>Expenses by category — All Time</h2></div>
+    ${catRows.length ? `
+    <div class="table-wrap"><table class="ledger">
+      <thead><tr><th>Category</th><th>Amount</th></tr></thead>
+      <tbody>${catRows.map(([cat, amt]) => `<tr><td class="name-cell">${cat}</td><td>${fmt(amt)}</td></tr>`).join('')}</tbody>
+    </table></div>` : `<div class="empty-state"><div class="glyph"><i data-lucide="receipt"></i></div>No expenses logged yet.</div>`}
+  </div>
+
+  <div class="card">
+    <div class="section-head"><h2>Other income by source</h2></div>
+    ${incomeRows.length ? `
+    <div class="table-wrap"><table class="ledger">
+      <thead><tr><th>Source</th><th>Amount</th></tr></thead>
+      <tbody>${incomeRows.map(([src, amt]) => `<tr><td class="name-cell">${src}</td><td>${fmt(amt)}</td></tr>`).join('')}</tbody>
+    </table></div>` : `<div class="empty-state"><div class="glyph"><i data-lucide="wallet"></i></div>No other income logged yet.</div>`}
+  </div>
+
+  <div class="card">
+    <div class="section-head"><h2>Bookings by status</h2></div>
+    ${Object.keys(statusCounts).length ? `
+    <div class="table-wrap"><table class="ledger">
+      <thead><tr><th>Status</th><th>Count</th></tr></thead>
+      <tbody>${Object.entries(statusCounts).map(([st, count]) => `<tr><td>${tagFor(st)}</td><td>${count}</td></tr>`).join('')}</tbody>
+    </table></div>` : `<div class="empty-state"><div class="glyph"><i data-lucide="calendar-check"></i></div>No bookings logged yet.</div>`}
+  </div>`;
+}
+
+/* ---------- Net Worth Dashboard ---------- */
+function renderNetWorth() {
+  const bank = Store.all('bankAccounts');
+  const fdrd = Store.all('fdrd');
+  const investments = Store.all('investments');
+  const assetsRaw = Store.all('assets');
+
+  // Sukanya, Minor and Spouse accounts hold money that isn't really "yours"
+  // to count as personal net worth — same exclusion as Available Balance.
+  const bankTotal = bank
+    .filter(a => !LOCKED_ACCOUNT_TYPES.includes(a.accType))
+    .reduce((s, a) => s + Number(a.balance || 0), 0);
+  const excludedBankTotal = bank
+    .filter(a => LOCKED_ACCOUNT_TYPES.includes(a.accType))
+    .reduce((s, a) => s + Number(a.balance || 0), 0);
+  const fdrdTotal = fdrd.reduce((s, a) => s + Number(a.principal || 0), 0);
+
+  // India investments are already stored in ₹. US Stocks are stored in $ and
+  // must be converted before they can be added to a ₹ net worth total.
+  const indiaInvestTotal = investments.filter(i => i.type !== 'US Stock').reduce((s, a) => s + Number(a.current || 0), 0);
+  const usInvestTotal = investments.filter(i => i.type === 'US Stock').reduce((s, a) => s + Number(a.current || 0), 0);
+  const usInvestInr = cachedUsdInrRate ? Math.round(usInvestTotal * cachedUsdInrRate) : 0;
+  const investTotal = indiaInvestTotal + usInvestInr;
+
+  const liabilities = assetsRaw.filter(a => (a.type || '').startsWith('Liability'));
+  const otherAssets = assetsRaw.filter(a => !(a.type || '').startsWith('Liability'));
+  const assetsTotal = otherAssets.reduce((s, a) => s + Number(a.value || 0), 0);
+  const liabilitiesTotal = liabilities.reduce((s, a) => s + Number(a.value || 0), 0);
+
+  const totalAssets = bankTotal + fdrdTotal + investTotal + assetsTotal;
+  const netWorth = totalAssets - liabilitiesTotal;
+
+  const rows = [
+    { label: 'Bank Accounts', value: bankTotal },
+    { label: 'FD / RD', value: fdrdTotal },
+    { label: 'India Investments', value: indiaInvestTotal },
+    { label: usInvestTotal > 0 ? `US Stocks ($${usInvestTotal.toLocaleString('en-IN')}${cachedUsdInrRate ? ' @ ₹'+cachedUsdInrRate+'/$' : ', not converted yet'})` : 'US Stocks', value: usInvestInr },
+    { label: 'Other Assets', value: assetsTotal },
+    { label: 'Liabilities', value: -liabilitiesTotal }
+  ];
+
+  return `
+  <div class="kpi-row">
+    <div class="kpi"><div class="kpi-label">Total Assets</div><div class="kpi-value">${fmt(totalAssets)}</div></div>
+    <div class="kpi"><div class="kpi-label">Total Liabilities</div><div class="kpi-value" style="color:var(--danger)">${fmt(liabilitiesTotal)}</div></div>
+    <div class="kpi"><div class="kpi-label">Net Worth</div><div class="kpi-value" style="color:var(--teal)">${fmt(netWorth)}</div></div>
+  </div>
+  ${usInvestTotal > 0 && !cachedUsdInrRate ? `<p style="color:var(--amber); font-size:12.5px; margin-bottom:14px;">⚠ You have $${usInvestTotal.toLocaleString('en-IN')} in US Stocks not yet converted to ₹ — Net Worth above excludes them. <a href="#" id="convertUsdBtn" style="color:var(--amber); text-decoration:underline;">Convert now</a></p>` : ''}
+  <div class="card">
+    <div class="section-head"><h2>Breakdown</h2></div>
+    <div class="table-wrap"><table class="ledger">
+      <thead><tr><th>Category</th><th>Amount</th></tr></thead>
+      <tbody>${rows.map(r => `<tr><td class="name-cell">${r.label}</td><td style="color:${r.value < 0 ? 'var(--danger)' : 'inherit'}">${fmt(r.value)}</td></tr>`).join('')}</tbody>
+    </table></div>
+    <p style="color:var(--muted); font-size:12px; margin-top:12px;">Pulled live from Bank Accounts, FD/RD, Investments and Assets &amp; Liabilities — update those modules and this updates automatically.${excludedBankTotal > 0 ? ` Excludes ${fmt(excludedBankTotal)} in Sukanya/Minor/Spouse accounts — that money isn't counted as your personal net worth.` : ''}</p>
+  </div>`;
+}
