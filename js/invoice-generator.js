@@ -147,6 +147,12 @@ function renderInvoicePrintable() {
     : invoiceDraft.docType === 'Provisional Invoice' ? 'PROVISIONAL INVOICE – CUM – DELIVERY CHALLAN'
     : 'INVOICE – CUM – DELIVERY CHALLAN';
 
+  // UPI payment QR — scanning it opens the customer's UPI app (GPay/PhonePe/
+  // etc.) with the payee, amount, and invoice number already filled in.
+  // Not shown on Quotations, since there's nothing to pay yet.
+  const upiUri = `upi://pay?pa=${encodeURIComponent(COMPANY_INFO.upiId)}&pn=${encodeURIComponent(COMPANY_INFO.name)}&am=${encodeURIComponent(total)}&cu=INR&tn=${encodeURIComponent('Invoice ' + (invoiceDraft.invoiceNo || ''))}`;
+  const qrImgUrl = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(upiUri)}`;
+
   return `
   <div class="invoice-sheet">
     <div class="invoice-title">${title}</div>
@@ -224,7 +230,11 @@ function renderInvoicePrintable() {
       </div>
       <div style="text-align:center; position:relative;">
         ${invoiceDraft.paid && invoiceDraft.docType !== 'Quotation' ? `<img src="${PAID_STAMP_IMG}" alt="Paid" style="position:absolute; width:120px; height:120px; left:-30px; top:-8px; opacity:0.88; z-index:2;">` : ''}
-        <div>For ${COMPANY_INFO.name}</div>
+        ${invoiceDraft.docType !== 'Quotation' ? `
+        <img src="${qrImgUrl}" alt="Scan to Pay via UPI" style="width:100px; height:100px;">
+        <div style="font-size:9px; color:#666; margin-top:2px;">Scan to Pay via UPI</div>
+        ` : ''}
+        <div style="margin-top:8px;">For ${COMPANY_INFO.name}</div>
         <img src="${SIGNATURE_IMG}" alt="Signature" style="height:45px; margin-top:6px;">
         <div style="margin-top:6px;">Authorised Signatory</div>
       </div>
