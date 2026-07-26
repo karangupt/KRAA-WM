@@ -214,10 +214,20 @@ function renderInvoicePrintable() {
     <div class="invoice-terms">
       <strong>Terms &amp; Conditions:</strong>
       <ol>${(invoiceDraft.docType === 'Quotation' ? [`This quotation is valid until ${fmtDate(invoiceDraft.deliveryDate) !== '—' ? fmtDate(invoiceDraft.deliveryDate) : 'the date mentioned above'}. Prices and equipment availability are subject to confirmation after this date.`] : []).concat(INVOICE_TERMS).map(t => `<li>${t}</li>`).join('')}</ol>
-      <strong>Mode of Payment: Only Digital Payments Accepted (Bank Transfer / UPI / NEFT / RTGS). Cash Payment Not Accepted.</strong><br>
-      GPay: UPI ID: ${COMPANY_INFO.upiId}<br>
-      Online Payment Link: <a href="${COMPANY_INFO.paymentLink}">${COMPANY_INFO.paymentLink}</a><br>
-      *If payment is made using a Credit Card, an additional 2.5% processing charge will be applicable
+      <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:12px;">
+        <div>
+          <strong>Mode of Payment: Only Digital Payments Accepted (Bank Transfer / UPI / NEFT / RTGS). Cash Payment Not Accepted.</strong><br>
+          GPay: UPI ID: ${COMPANY_INFO.upiId}<br>
+          Online Payment Link: <a href="${COMPANY_INFO.paymentLink}">${COMPANY_INFO.paymentLink}</a><br>
+          *If payment is made using a Credit Card, an additional 2.5% processing charge will be applicable
+        </div>
+        ${invoiceDraft.docType !== 'Quotation' ? `
+        <div style="text-align:center; flex-shrink:0;">
+          <img src="${qrImgUrl}" alt="Scan to Pay via UPI" style="width:100px; height:100px;">
+          <div style="font-size:9px; color:#666; margin-top:2px;">Scan to Pay via UPI</div>
+        </div>
+        ` : ''}
+      </div>
     </div>
 
     <div class="invoice-bank-sign">
@@ -230,11 +240,7 @@ function renderInvoicePrintable() {
       </div>
       <div style="text-align:center; position:relative;">
         ${invoiceDraft.paid && invoiceDraft.docType !== 'Quotation' ? `<img src="${PAID_STAMP_IMG}" alt="Paid" style="position:absolute; width:120px; height:120px; left:-30px; top:-8px; opacity:0.88; z-index:2;">` : ''}
-        ${invoiceDraft.docType !== 'Quotation' ? `
-        <img src="${qrImgUrl}" alt="Scan to Pay via UPI" style="width:100px; height:100px;">
-        <div style="font-size:9px; color:#666; margin-top:2px;">Scan to Pay via UPI</div>
-        ` : ''}
-        <div style="margin-top:8px;">For ${COMPANY_INFO.name}</div>
+        <div>For ${COMPANY_INFO.name}</div>
         <img src="${SIGNATURE_IMG}" alt="Signature" style="height:45px; margin-top:6px;">
         <div style="margin-top:6px;">Authorised Signatory</div>
       </div>
