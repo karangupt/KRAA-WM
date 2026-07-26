@@ -66,6 +66,7 @@ const MODULES = {
     title: 'Expenses', collection: 'expenses', icon: 'receipt',
     columns: [
       { label: 'Date', field: 'date', render: fmtDate },
+      { label: 'Type', field: 'expenseType', render: v => v || 'Corporate' },
       { label: 'Category', field: 'category' },
       { label: 'Description', field: 'desc', cls: 'name-cell' },
       { label: 'Paid Via', field: 'paymentMode', render: (v, row) => {
@@ -77,6 +78,7 @@ const MODULES = {
     ],
     fields: [
       { name: 'date', label: 'Date', type: 'date', required: true },
+      { name: 'expenseType', label: 'Personal or Corporate?', type: 'select', options: ['Corporate','Personal'], required: true },
       { name: 'category', label: 'Category', type: 'text' },
       { name: 'desc', label: 'Description', type: 'text' },
       { name: 'paymentMode', label: 'Paid via', type: 'select', options: ['Cash','UPI','Credit Card'] },
