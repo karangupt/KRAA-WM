@@ -6,7 +6,7 @@
 <title>Workspace — Projector Solutions</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=48">
+<link rel="stylesheet" href="css/style.css?v=49">
 </head>
 <body>
 
@@ -44,38 +44,50 @@
     <nav class="nav">
       <button class="nav-item active" data-view="dashboard"><i data-lucide="layout-dashboard" class="nav-ico"></i>Dashboard</button>
 
-      <div class="nav-group-label">CRM</div>
-      <button class="nav-item" data-view="customer"><i data-lucide="users" class="nav-ico"></i>Customers</button>
-      <button class="nav-item" data-view="vendor"><i data-lucide="truck" class="nav-ico"></i>Vendors</button>
-      <button class="nav-item" data-view="staff"><i data-lucide="user-cog" class="nav-ico"></i>Staff</button>
+      <div class="nav-group" data-roles="owner,manager,staff,viewer">
+        <div class="nav-group-label">CRM</div>
+        <button class="nav-item" data-view="customer"><i data-lucide="users" class="nav-ico"></i>Customers</button>
+        <button class="nav-item" data-view="vendor"><i data-lucide="truck" class="nav-ico"></i>Vendors</button>
+        <button class="nav-item" data-view="staff"><i data-lucide="user-cog" class="nav-ico"></i>Staff</button>
+      </div>
 
-      <div class="nav-group-label">Rental Operations</div>
-      <button class="nav-item" data-view="bookingPayments"><i data-lucide="calendar-check" class="nav-ico"></i>Bookings</button>
-      <button class="nav-item" data-view="inventory"><i data-lucide="projector" class="nav-ico"></i>Equipment</button>
+      <div class="nav-group" data-roles="owner,manager,staff,viewer">
+        <div class="nav-group-label">Rental Operations</div>
+        <button class="nav-item" data-view="bookingPayments"><i data-lucide="calendar-check" class="nav-ico"></i>Bookings</button>
+        <button class="nav-item" data-view="inventory"><i data-lucide="projector" class="nav-ico"></i>Equipment</button>
+      </div>
 
-      <div class="nav-group-label">Billing</div>
-      <button class="nav-item" data-view="invoice"><i data-lucide="file-text" class="nav-ico"></i>Invoices</button>
-      <button class="nav-item" data-view="payments"><i data-lucide="banknote" class="nav-ico"></i>Payments</button>
-      <button class="nav-item" data-view="expense"><i data-lucide="receipt" class="nav-ico"></i>Expenses</button>
+      <div class="nav-group" data-roles="owner,manager,staff,viewer">
+        <div class="nav-group-label">Billing</div>
+        <button class="nav-item" data-view="invoice"><i data-lucide="file-text" class="nav-ico"></i>Invoices</button>
+        <button class="nav-item" data-view="payments"><i data-lucide="banknote" class="nav-ico"></i>Payments</button>
+        <button class="nav-item" data-view="expense"><i data-lucide="receipt" class="nav-ico"></i>Expenses</button>
+      </div>
 
-      <div class="nav-group-label">Finance &amp; Wealth</div>
-      <button class="nav-item" data-view="bank"><i data-lucide="landmark" class="nav-ico"></i>Bank Accounts</button>
-      <button class="nav-item" data-view="fdrd"><i data-lucide="piggy-bank" class="nav-ico"></i>FD / RD</button>
-      <button class="nav-item" data-view="creditcards"><i data-lucide="credit-card" class="nav-ico"></i>Credit Cards</button>
-      <button class="nav-item" data-view="giftcards"><i data-lucide="gift" class="nav-ico"></i>Gift Cards &amp; Wallets</button>
-      <button class="nav-item" data-view="investments"><i data-lucide="trending-up" class="nav-ico"></i>Investments</button>
-      <button class="nav-item" data-view="assets"><i data-lucide="scale" class="nav-ico"></i>Assets &amp; Liabilities</button>
-      <button class="nav-item" data-view="personal"><i data-lucide="repeat" class="nav-ico"></i>Recurring Bills &amp; Utilities</button>
-      <button class="nav-item" data-view="otherIncome"><i data-lucide="wallet" class="nav-ico"></i>Other Income</button>
-      <button class="nav-item" data-view="insurance"><i data-lucide="shield-check" class="nav-ico"></i>Insurance</button>
-      <button class="nav-item" data-view="networth"><i data-lucide="pie-chart" class="nav-ico"></i>Net Worth</button>
+      <div class="nav-group" data-roles="owner,family">
+        <div class="nav-group-label">Finance &amp; Wealth</div>
+        <button class="nav-item" data-view="bank"><i data-lucide="landmark" class="nav-ico"></i>Bank Accounts</button>
+        <button class="nav-item" data-view="fdrd"><i data-lucide="piggy-bank" class="nav-ico"></i>FD / RD</button>
+        <button class="nav-item" data-view="creditcards"><i data-lucide="credit-card" class="nav-ico"></i>Credit Cards</button>
+        <button class="nav-item" data-view="giftcards"><i data-lucide="gift" class="nav-ico"></i>Gift Cards &amp; Wallets</button>
+        <button class="nav-item" data-view="investments"><i data-lucide="trending-up" class="nav-ico"></i>Investments</button>
+        <button class="nav-item" data-view="assets"><i data-lucide="scale" class="nav-ico"></i>Assets &amp; Liabilities</button>
+        <button class="nav-item" data-view="personal"><i data-lucide="repeat" class="nav-ico"></i>Recurring Bills &amp; Utilities</button>
+        <button class="nav-item" data-view="otherIncome"><i data-lucide="wallet" class="nav-ico"></i>Other Income</button>
+        <button class="nav-item" data-view="insurance"><i data-lucide="shield-check" class="nav-ico"></i>Insurance</button>
+        <button class="nav-item" data-view="networth"><i data-lucide="pie-chart" class="nav-ico"></i>Net Worth</button>
+      </div>
 
-      <div class="nav-group-label">Reports</div>
-      <button class="nav-item" data-view="reports"><i data-lucide="bar-chart-3" class="nav-ico"></i>Reports</button>
+      <div class="nav-group" data-roles="owner,manager,staff,viewer">
+        <div class="nav-group-label">Reports</div>
+        <button class="nav-item" data-view="reports"><i data-lucide="bar-chart-3" class="nav-ico"></i>Reports</button>
+      </div>
 
-      <div class="nav-group-label">Family &amp; Documents</div>
-      <button class="nav-item" data-view="documents"><i data-lucide="folder-lock" class="nav-ico"></i>Document Vault</button>
-      <button class="nav-item" data-view="familyNotes"><i data-lucide="notebook-pen" class="nav-ico"></i>Family Notes</button>
+      <div class="nav-group" data-roles="owner,family">
+        <div class="nav-group-label">Family &amp; Documents</div>
+        <button class="nav-item" data-view="documents"><i data-lucide="folder-lock" class="nav-ico"></i>Document Vault</button>
+        <button class="nav-item" data-view="familyNotes"><i data-lucide="notebook-pen" class="nav-ico"></i>Family Notes</button>
+      </div>
 
       <div class="nav-group-label">System</div>
       <button class="nav-item" data-view="settings"><i data-lucide="settings" class="nav-ico"></i>Settings</button>
@@ -123,21 +135,21 @@
 
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-<script src="js/store.js?v=48"></script>
-<script src="js/supabase-client.js?v=48"></script>
-<script src="js/supabase-auth.js?v=48"></script>
-<script src="js/supabase-sync.js?v=48"></script>
-<script src="js/sheets-api.js?v=48"></script>
-<script src="js/helpers.js?v=48"></script>
-<script src="js/modules-data.js?v=48"></script>
-<script src="js/module-table.js?v=48"></script>
-<script src="js/dashboard-router.js?v=48"></script>
-<script src="js/reports.js?v=48"></script>
-<script src="js/invoice-generator.js?v=48"></script>
-<script src="js/settings.js?v=48"></script>
-<script src="js/views-custom.js?v=48"></script>
-<script src="js/modal.js?v=48"></script>
-<script src="js/boot.js?v=48"></script>
+<script src="js/store.js?v=49"></script>
+<script src="js/supabase-client.js?v=49"></script>
+<script src="js/supabase-auth.js?v=49"></script>
+<script src="js/supabase-sync.js?v=49"></script>
+<script src="js/sheets-api.js?v=49"></script>
+<script src="js/helpers.js?v=49"></script>
+<script src="js/modules-data.js?v=49"></script>
+<script src="js/module-table.js?v=49"></script>
+<script src="js/dashboard-router.js?v=49"></script>
+<script src="js/reports.js?v=49"></script>
+<script src="js/invoice-generator.js?v=49"></script>
+<script src="js/settings.js?v=49"></script>
+<script src="js/views-custom.js?v=49"></script>
+<script src="js/modal.js?v=49"></script>
+<script src="js/boot.js?v=49"></script>
 <div id="genericPrintArea" style="display:none;"></div>
 
 </body>
