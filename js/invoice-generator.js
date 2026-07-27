@@ -78,6 +78,10 @@ function renderInvoiceGen() {
         <div class="field"><label>Contact person name</label><input type="text" id="ig_contactPersonName" value="${invoiceDraft.contactPersonName}"></div>
         <div class="field"><label>Contact person number</label><input type="text" id="ig_contactPersonNumber" value="${invoiceDraft.contactPersonNumber}"></div>
         <div class="field"><label>PO / Reference number (optional)</label><input type="text" id="ig_poNumber" value="${invoiceDraft.poNumber}" placeholder="Customer's purchase order no."></div>
+        ${invoiceDraft.docType === 'Quotation' ? `
+        <div class="field"><label>Customer PAN</label><input type="text" id="ig_customerPAN" value="${invoiceDraft.customerPAN || ''}" placeholder="e.g. AANCR3989D"></div>
+        <div class="field"><label>Place of Supply</label><input type="text" id="ig_placeOfSupply" value="${invoiceDraft.placeOfSupply || ''}" placeholder="e.g. Maharashtra (27)"></div>
+        ` : ''}
       </div>
       <label style="display:flex; align-items:center; gap:8px; margin-top:10px; font-size:12.5px; color:var(--muted); cursor:pointer;">
         <input type="checkbox" id="ig_sameAddr" ${invoiceDraft.sameAsCustomer ? 'checked' : ''} style="accent-color:var(--amber);">
@@ -92,15 +96,19 @@ function renderInvoiceGen() {
     <div class="card">
       <div class="section-head"><h2>3. Items</h2><button class="btn secondary" id="ig_addItem">+ Add item</button></div>
       <div class="table-wrap"><table class="ledger">
-        <thead><tr><th>Description</th><th style="width:80px;">Qty</th><th style="width:120px;">Rate</th><th style="width:120px;">Amount</th><th></th></tr></thead>
+        <thead><tr><th>Description</th><th style="width:80px;">Qty</th><th style="width:120px;">Rate</th>${invoiceDraft.docType === 'Quotation' ? '<th style="width:90px;">GST %</th>' : ''}<th style="width:120px;">Amount</th><th></th></tr></thead>
         <tbody>
           ${invoiceDraft.items.map((it, i) => `<tr>
             <td><input type="text" data-item-field="desc" data-item-idx="${i}" value="${it.desc}" style="width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text); padding:6px 8px; border-radius:6px; font-size:13px;"></td>
             <td><input type="number" data-item-field="qty" data-item-idx="${i}" value="${it.qty}" style="width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text); padding:6px 8px; border-radius:6px; font-size:13px;"></td>
             <td><input type="number" data-item-field="rate" data-item-idx="${i}" value="${it.rate}" style="width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text); padding:6px 8px; border-radius:6px; font-size:13px;"></td>
+            ${invoiceDraft.docType === 'Quotation' ? `<td><input type="number" data-item-field="gstRate" data-item-idx="${i}" value="${it.gstRate != null ? it.gstRate : 18}" style="width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text); padding:6px 8px; border-radius:6px; font-size:13px;"></td>` : ''}
             <td class="name-cell">${fmt((Number(it.qty)||0)*(Number(it.rate)||0))}</td>
             <td><button data-remove-item="${i}" style="background:none; border:none; color:var(--danger); cursor:pointer; display:flex; align-items:center;"><i data-lucide="x" style="width:14px;height:14px;"></i></button></td>
-          </tr>`).join('')}
+          </tr>
+          ${invoiceDraft.docType === 'Quotation' ? `<tr><td colspan="6" style="padding-top:0;">
+            <textarea data-item-field="longDesc" data-item-idx="${i}" rows="2" placeholder="Detailed product description for this item (optional)..." style="width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text); padding:6px 8px; border-radius:6px; font-size:12.5px; font-family:inherit;">${it.longDesc || ''}</textarea>
+          </td></tr>` : ''}`).join('')}
         </tbody>
       </table></div>
       <p style="text-align:right; margin-top:10px; font-family:var(--font-mono); font-size:15px;">Total: <strong style="color:var(--amber);">${fmt(total)}</strong></p>
@@ -141,6 +149,8 @@ function renderInvoiceGen() {
 }
 
 function renderInvoicePrintable() {
+  if (invoiceDraft.docType === 'Quotation') return renderQuotationDocument();
+
   const total = invoiceItemsTotal();
   const deliveryAddr = invoiceDraft.sameAsCustomer ? invoiceDraft.customerAddress : invoiceDraft.deliveryAddress;
   const title = invoiceDraft.docType === 'Quotation' ? 'QUOTATION'
@@ -248,6 +258,105 @@ function renderInvoicePrintable() {
   </div>`;
 }
 
+// A separate, GST-style quotation layout (purple header, per-item GST/CGST/
+// SGST columns, detailed product descriptions) — used only when Document
+// type = Quotation. Invoices and Provisional Invoices keep the regular
+// layout above.
+function renderQuotationDocument() {
+  const validTill = invoiceDraft.deliveryDate ? fmtDate(invoiceDraft.deliveryDate) : '—';
+  let subTotal = 0, cgstTotal = 0, sgstTotal = 0;
+  const rows = invoiceDraft.items.map((it, i) => {
+    const qty = Number(it.qty) || 0;
+    const rate = Number(it.rate) || 0;
+    const gstRate = it.gstRate != null ? Number(it.gstRate) : 18;
+    const amount = qty * rate;
+    const cgst = amount * gstRate / 200;
+    const sgst = amount * gstRate / 200;
+    const rowTotal = amount + cgst + sgst;
+    subTotal += amount; cgstTotal += cgst; sgstTotal += sgst;
+    return `
+      <tr>
+        <td style="width:26px;">${i + 1}.</td>
+        <td>${it.desc || ''}</td>
+        <td style="text-align:center;">${gstRate}%</td>
+        <td style="text-align:center;">${qty}</td>
+        <td style="text-align:right;">${fmt(rate)}</td>
+        <td style="text-align:right;">${fmt(amount)}</td>
+        <td style="text-align:right;">${fmt(cgst)}</td>
+        <td style="text-align:right;">${fmt(sgst)}</td>
+        <td style="text-align:right;">${fmt(rowTotal)}</td>
+      </tr>
+      ${it.longDesc ? `<tr><td></td><td colspan="8" style="font-size:10.5px; color:#444; padding-top:0;">${it.longDesc.replace(/\n/g, '<br>')}</td></tr>` : ''}
+    `;
+  }).join('');
+  const grandTotal = subTotal + cgstTotal + sgstTotal;
+
+  return `
+  <div class="invoice-sheet q-sheet">
+    <div class="q-header-row">
+      <div>
+        <div class="q-title">Quotation</div>
+        <table class="q-meta-table">
+          <tr><td>Quotation No</td><td><strong>${invoiceDraft.invoiceNo || '—'}</strong></td></tr>
+          <tr><td>Quotation Date</td><td>${fmtDate(invoiceDraft.date)}</td></tr>
+          <tr><td>Valid Till Date</td><td>${validTill}</td></tr>
+        </table>
+      </div>
+      <div class="q-logo-box">
+        <div class="q-logo-name">PROJECTOR<br>SOLUTIONS</div>
+      </div>
+    </div>
+
+    <div class="q-addr-row">
+      <div class="q-addr-box">
+        <div class="q-addr-heading">Quotation From</div>
+        <strong>${COMPANY_INFO.name}</strong><br>
+        ${COMPANY_INFO.addressLines.join('<br>')}<br>
+        PAN: ${COMPANY_INFO.pan}<br>
+        Phone: ${COMPANY_INFO.mobile}
+      </div>
+      <div class="q-addr-box">
+        <div class="q-addr-heading">Quotation For</div>
+        <strong>${invoiceDraft.customerName || '—'}</strong><br>
+        ${(invoiceDraft.customerAddress || '').replace(/\n/g, '<br>')}<br>
+        ${invoiceDraft.customerGST ? `GSTIN: ${invoiceDraft.customerGST}<br>` : ''}
+        ${invoiceDraft.customerPAN ? `PAN: ${invoiceDraft.customerPAN}<br>` : ''}
+        ${invoiceDraft.customerEmail ? `Email: ${invoiceDraft.customerEmail}` : ''}
+      </div>
+    </div>
+
+    <div class="q-supply-row">
+      <div><strong>Country of Supply:</strong> India</div>
+      <div><strong>Place of Supply:</strong> ${invoiceDraft.placeOfSupply || '—'}</div>
+    </div>
+
+    <table class="q-items-table">
+      <thead>
+        <tr>
+          <th></th><th>Item</th><th>GST Rate</th><th>Quantity</th><th>Rate</th><th>Amount</th><th>CGST</th><th>SGST</th><th>Total</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+
+    <div class="q-totals-box">
+      <table>
+        <tr><td>Amount</td><td>${fmt(subTotal)}</td></tr>
+        <tr><td>CGST</td><td>${fmt(cgstTotal)}</td></tr>
+        <tr><td>SGST</td><td>${fmt(sgstTotal)}</td></tr>
+        <tr class="q-grand-total"><td>Total (INR)</td><td>${fmt(grandTotal)}</td></tr>
+      </table>
+    </div>
+
+    <p style="margin-top:10px; font-size:11px;">Amount Chargeable (in words): <strong>Indian Rupees ${numToWordsIndian(Math.round(grandTotal))} Only</strong></p>
+
+    <div class="q-footer">
+      This is an electronically generated document, no signature is required.<br>
+      For any enquiry, reach out via email at ${COMPANY_INFO.email} / call on ${COMPANY_INFO.mobile}
+    </div>
+  </div>`;
+}
+
 function wireInvoiceGen() {
   const root = $('#viewRoot');
   const bind = (id, prop, evt = 'input') => {
@@ -267,6 +376,8 @@ function wireInvoiceGen() {
   bind('ig_customerName', 'customerName');
   bind('ig_customerAddress', 'customerAddress');
   bind('ig_customerGST', 'customerGST');
+  bind('ig_customerPAN', 'customerPAN');
+  bind('ig_placeOfSupply', 'placeOfSupply');
   bind('ig_customerEmail', 'customerEmail');
   bind('ig_contactPersonName', 'contactPersonName');
   bind('ig_contactPersonNumber', 'contactPersonNumber');
@@ -294,13 +405,13 @@ function wireInvoiceGen() {
     input.addEventListener('input', () => {
       const idx = Number(input.dataset.itemIdx);
       const field = input.dataset.itemField;
-      invoiceDraft.items[idx][field] = field === 'desc' ? input.value : Number(input.value);
+      invoiceDraft.items[idx][field] = (field === 'desc' || field === 'longDesc') ? input.value : Number(input.value);
       wireInvoiceGenRefresh();
     });
   });
 
   root.querySelector('#ig_addItem')?.addEventListener('click', () => {
-    invoiceDraft.items.push({ desc: '', qty: 1, rate: 0 });
+    invoiceDraft.items.push({ desc: '', qty: 1, rate: 0, gstRate: 18, longDesc: '' });
     render();
   });
 
