@@ -81,6 +81,20 @@ function renderInvoiceGen() {
         ${invoiceDraft.docType === 'Quotation' ? `
         <div class="field"><label>Customer PAN</label><input type="text" id="ig_customerPAN" value="${invoiceDraft.customerPAN || ''}" placeholder="e.g. AANCR3989D"></div>
         <div class="field"><label>Place of Supply</label><input type="text" id="ig_placeOfSupply" value="${invoiceDraft.placeOfSupply || ''}" placeholder="e.g. Maharashtra (27)"></div>
+        <div class="field"><label>Quotation Category</label>
+          <select id="ig_quotationCategory">
+            <option value="Rental" ${invoiceDraft.quotationCategory === 'Rental' ? 'selected' : ''}>Rental</option>
+            <option value="Sale" ${invoiceDraft.quotationCategory === 'Sale' ? 'selected' : ''}>Sale (equipment sold, not rented)</option>
+          </select>
+        </div>
+        ${invoiceDraft.quotationCategory === 'Rental' ? `
+        <div class="field"><label>Rental Type</label>
+          <select id="ig_rentalSubType">
+            <option value="Projector" ${invoiceDraft.rentalSubType === 'Projector' ? 'selected' : ''}>Projector Rental</option>
+            <option value="LEDScreen" ${invoiceDraft.rentalSubType === 'LEDScreen' ? 'selected' : ''}>LED Screen Rental</option>
+          </select>
+        </div>
+        ` : ''}
         ` : ''}
       </div>
       <label style="display:flex; align-items:center; gap:8px; margin-top:10px; font-size:12.5px; color:var(--muted); cursor:pointer;">
@@ -222,8 +236,10 @@ function renderInvoicePrintable() {
     </div>
 
     <div class="invoice-terms">
+      ${invoiceDraft.docType === 'Provisional Invoice' ? `
       <strong>Terms &amp; Conditions:</strong>
-      <ol>${(invoiceDraft.docType === 'Quotation' ? [`This quotation is valid until ${fmtDate(invoiceDraft.deliveryDate) !== '—' ? fmtDate(invoiceDraft.deliveryDate) : 'the date mentioned above'}. Prices and equipment availability are subject to confirmation after this date.`] : []).concat(INVOICE_TERMS).map(t => `<li>${t}</li>`).join('')}</ol>
+      <ol>${RENTAL_TERMS[invoiceDraft.rentalSubType || 'Projector'].map(t => `<li>${t}</li>`).join('')}</ol>
+      ` : ''}
       <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:12px;">
         <div>
           <strong>Mode of Payment: Only Digital Payments Accepted (Bank Transfer / UPI / NEFT / RTGS). Cash Payment Not Accepted.</strong><br>
@@ -231,12 +247,10 @@ function renderInvoicePrintable() {
           Online Payment Link: <a href="${COMPANY_INFO.paymentLink}">${COMPANY_INFO.paymentLink}</a><br>
           *If payment is made using a Credit Card, an additional 2.5% processing charge will be applicable
         </div>
-        ${invoiceDraft.docType !== 'Quotation' ? `
         <div style="text-align:center; flex-shrink:0;">
           <img src="${qrImgUrl}" alt="Scan to Pay via UPI" style="width:100px; height:100px;">
           <div style="font-size:9px; color:#666; margin-top:2px;">Scan to Pay via UPI</div>
         </div>
-        ` : ''}
       </div>
     </div>
 
@@ -303,7 +317,7 @@ function renderQuotationDocument() {
         </table>
       </div>
       <div class="q-logo-box">
-        <div class="q-logo-name">PROJECTOR<br>SOLUTIONS</div>
+        <img src="${LOGO_IMG}" alt="Projector Solutions" style="width:120px; display:block;">
       </div>
     </div>
 
@@ -350,6 +364,13 @@ function renderQuotationDocument() {
 
     <p style="margin-top:10px; font-size:11px;">Amount Chargeable (in words): <strong>Indian Rupees ${numToWordsIndian(Math.round(grandTotal))} Only</strong></p>
 
+    ${invoiceDraft.quotationCategory === 'Rental' ? `
+    <div class="invoice-terms" style="margin-top:14px;">
+      <strong>Terms &amp; Conditions:</strong>
+      <ol>${RENTAL_TERMS[invoiceDraft.rentalSubType || 'Projector'].map(t => `<li>${t}</li>`).join('')}</ol>
+    </div>
+    ` : ''}
+
     <div class="q-footer">
       This is an electronically generated document, no signature is required.<br>
       For any enquiry, reach out via email at ${COMPANY_INFO.email} / call on ${COMPANY_INFO.mobile}
@@ -378,6 +399,14 @@ function wireInvoiceGen() {
   bind('ig_customerGST', 'customerGST');
   bind('ig_customerPAN', 'customerPAN');
   bind('ig_placeOfSupply', 'placeOfSupply');
+
+  root.querySelector('#ig_quotationCategory')?.addEventListener('change', (e) => {
+    invoiceDraft.quotationCategory = e.target.value;
+    render();
+  });
+  root.querySelector('#ig_rentalSubType')?.addEventListener('change', (e) => {
+    invoiceDraft.rentalSubType = e.target.value;
+  });
   bind('ig_customerEmail', 'customerEmail');
   bind('ig_contactPersonName', 'contactPersonName');
   bind('ig_contactPersonNumber', 'contactPersonNumber');
