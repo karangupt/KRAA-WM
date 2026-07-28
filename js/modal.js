@@ -9,11 +9,21 @@ function openModal(moduleKey, id) {
   $('#modalTitle').textContent = (id ? 'Edit ' : 'Add ') + cfg.title.replace(/s$/, '');
 
   const form = $('#modalForm');
+  // Holds the live array for any "contacts-list" fields (extra contact
+  // people for a Customer/Vendor) — kept outside FormData since it's a
+  // dynamic repeatable list, not a single input.
+  const listFieldState = {};
+
   form.innerHTML = cfg.fields.map(f => {
     const val = record[f.name] ?? '';
     const wrapAttrs = f.showIf ? `data-showif-field="${f.showIf.field}" data-showif-equals="${f.showIf.equals}"` : '';
     let inner;
-    if (f.type === 'select') {
+    if (f.type === 'contacts-list') {
+      listFieldState[f.name] = Array.isArray(record[f.name]) ? structuredClone(record[f.name]) : [];
+      inner = `<label>${f.label}</label>
+        <div class="contacts-list-rows" data-contacts-field="${f.name}"></div>
+        <button type="button" class="btn secondary" data-add-contact="${f.name}" style="margin-top:6px; font-size:12px; padding:6px 10px;">+ Add another contact</button>`;
+    } else if (f.type === 'select') {
       const opts = f.source ? Store.all(f.source).map(o => ({ value: o.id, label: o[f.optLabel] }))
                              : f.options.map(o => ({ value: o, label: o }));
       inner = `<label>${f.label}</label>
@@ -34,6 +44,44 @@ function openModal(moduleKey, id) {
       <button type="submit" class="btn">Save</button>
       <button type="button" class="btn secondary" id="cancelModal">Cancel</button>
     </div>`;
+
+  // Render + wire each contacts-list field's rows. Re-drawn in place
+  // whenever a contact is added/removed/edited, without touching the
+  // rest of the form (so other fields the person is mid-typing stay put).
+  function renderContactsRows(fieldName) {
+    const container = form.querySelector(`.contacts-list-rows[data-contacts-field="${fieldName}"]`);
+    const list = listFieldState[fieldName];
+    container.innerHTML = list.map((c, i) => `
+      <div style="display:flex; gap:8px; margin-bottom:6px;">
+        <input type="text" placeholder="Contact name" data-contact-idx="${i}" data-contact-part="name" value="${c.name || ''}" style="flex:1;">
+        <input type="text" placeholder="Contact number" data-contact-idx="${i}" data-contact-part="phone" value="${c.phone || ''}" style="flex:1;">
+        <button type="button" data-remove-contact="${i}" style="background:none; border:none; color:var(--danger); cursor:pointer; display:flex; align-items:center;"><i data-lucide="x" style="width:14px;height:14px;"></i></button>
+      </div>
+    `).join('') || `<p style="color:var(--muted); font-size:12px;">No additional contacts yet.</p>`;
+
+    container.querySelectorAll('[data-contact-idx]').forEach(input => {
+      input.addEventListener('input', () => {
+        const idx = Number(input.dataset.contactIdx);
+        listFieldState[fieldName][idx][input.dataset.contactPart] = input.value;
+      });
+    });
+    container.querySelectorAll('[data-remove-contact]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        listFieldState[fieldName].splice(Number(btn.dataset.removeContact), 1);
+        renderContactsRows(fieldName);
+        if (window.lucide) lucide.createIcons();
+      });
+    });
+    if (window.lucide) lucide.createIcons();
+  }
+  Object.keys(listFieldState).forEach(renderContactsRows);
+  form.querySelectorAll('[data-add-contact]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const fieldName = btn.dataset.addContact;
+      listFieldState[fieldName].push({ name: '', phone: '' });
+      renderContactsRows(fieldName);
+    });
+  });
 
   // Conditional fields: hide/show based on another field's current value,
   // e.g. "Which credit card?" only appears when Payment Mode = Credit Card.
@@ -66,6 +114,9 @@ function openModal(moduleKey, id) {
   form.onsubmit = (e) => {
     e.preventDefault();
     const data = Object.fromEntries(new FormData(form).entries());
+    Object.keys(listFieldState).forEach(fieldName => {
+      data[fieldName] = listFieldState[fieldName].filter(c => c.name || c.phone);
+    });
     const previousRecord = id ? Store.get(cfg.collection, id) : null;
     const saved = id ? Store.update(cfg.collection, id, data) : Store.add(cfg.collection, data);
     if (cfg.onSave) cfg.onSave(saved, previousRecord);
