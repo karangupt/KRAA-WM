@@ -188,6 +188,7 @@ function renderInvoicePrintable() {
         <div>Mobile: ${COMPANY_INFO.mobile}</div>
         <div>Email: ${COMPANY_INFO.email}</div>
         <div style="margin-top:6px;">Udyam Registration No.: ${COMPANY_INFO.udyam}</div>
+        <div>PAN: ${COMPANY_INFO.pan}</div>
         <div>GSTIN: ${COMPANY_INFO.gstNote}</div>
       </div>
       <div class="invoice-meta">
@@ -326,6 +327,7 @@ function renderQuotationDocument() {
         <div class="q-addr-heading">Quotation From</div>
         <strong>${COMPANY_INFO.name}</strong><br>
         ${COMPANY_INFO.addressLines.join('<br>')}<br>
+        Udyam Registration No.: ${COMPANY_INFO.udyam}<br>
         PAN: ${COMPANY_INFO.pan}<br>
         Phone: ${COMPANY_INFO.mobile}
       </div>
