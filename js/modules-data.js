@@ -4,16 +4,17 @@ const MODULES = {
   customer: {
     title: 'Customers', collection: 'customers', icon: 'users',
     columns: [
-      { label: 'Name', field: 'name', cls: 'name-cell' },
-      { label: 'Company', field: 'companyName' },
-      { label: 'Phone', field: 'phone' },
+      { label: 'Company', field: 'companyName', cls: 'name-cell' },
+      { label: 'Contact Name', field: 'name' },
+      { label: 'Contact Number', field: 'phone' },
       { label: 'Email', field: 'email' },
       { label: 'GST No.', field: 'gst' }
     ],
     fields: [
-      { name: 'name', label: 'Customer name', type: 'text', required: true },
       { name: 'companyName', label: 'Company name', type: 'text' },
-      { name: 'phone', label: 'Phone', type: 'text' },
+      { name: 'name', label: 'Contact Name', type: 'text', required: true },
+      { name: 'phone', label: 'Contact Number', type: 'text' },
+      { name: 'additionalContacts', label: 'Additional contacts at this company (optional)', type: 'contacts-list' },
       { name: 'email', label: 'Email', type: 'text' },
       { name: 'gst', label: 'GST number', type: 'text' },
       { name: 'notes', label: 'Notes', type: 'text' }
@@ -250,7 +251,8 @@ const MODULES = {
       { name: 'name', label: 'Vendor name', type: 'text', required: true },
       { name: 'companyName', label: 'Registered company name (if different)', type: 'text' },
       { name: 'contactPerson', label: 'Contact person', type: 'text' },
-      { name: 'phone', label: 'Phone', type: 'text' },
+      { name: 'phone', label: 'Contact Number', type: 'text' },
+      { name: 'additionalContacts', label: 'Additional contacts at this company (optional)', type: 'contacts-list' },
       { name: 'email', label: 'Email', type: 'text' },
       { name: 'category', label: 'Category (e.g. Equipment Supplier)', type: 'text' },
       { name: 'notes', label: 'Notes', type: 'text' }
