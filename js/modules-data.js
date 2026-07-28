@@ -80,7 +80,8 @@ const MODULES = {
       { name: 'date', label: 'Date', type: 'date', required: true },
       { name: 'expenseType', label: 'Personal or Corporate?', type: 'select', options: ['Corporate','Personal'], required: true },
       { name: 'category', label: 'Category', type: 'select', options: [
-        'Grocery', 'Milk & Dairy', 'Fuel', 'Clothing', 'Medical & Health', 'Food & Dining', 'Utilities (Electricity/Water/Internet)', 'Rent',
+        'Grocery', 'Vegetable', 'Milk & Dairy', 'LPG Cylinder', 'Fuel', 'Clothing', 'Footwear', 'Medical & Health', 'Food & Dining',
+        'Utilities (Electricity/Water/Internet)', 'Electricity', 'Internet Recharge', 'Mobile Recharge', 'Rent', 'Society Maintenance', 'Property Tax',
         'Equipment Maintenance', 'Equipment Purchase', 'Salaries & Wages', 'Marketing & Advertising', 'Office Supplies', 'Hardware & Tools', 'Transport & Delivery', 'Insurance Premium',
         'Travel', 'Education', 'Entertainment', 'Loan / EMI', 'Miscellaneous'
       ] },
