@@ -305,21 +305,6 @@ const MODULES = {
       { name: 'value', label: 'Value (₹)', type: 'number' }
     ]
   },
-  personal: {
-    title: 'Recurring Bills & Utilities', collection: 'personalExpenses', icon: 'repeat',
-    columns: [
-      { label: 'Category', field: 'category', cls: 'name-cell' },
-      { label: 'Frequency', field: 'frequency' },
-      { label: 'Date', field: 'date', render: fmtDate },
-      { label: 'Amount', field: 'amount', render: v => fmt(v) }
-    ],
-    fields: [
-      { name: 'category', label: 'Bill type', type: 'select', options: ['Electricity Bill','Society Maintenance','Property Tax','Water Bill','Gas Bill','Internet/Phone','Other'] },
-      { name: 'frequency', label: 'Frequency', type: 'select', options: ['Monthly','Quarterly','Half-Yearly','Yearly','One-time'] },
-      { name: 'date', label: 'Date paid / due', type: 'date', required: true },
-      { name: 'amount', label: 'Amount (₹)', type: 'number' }
-    ]
-  },
   otherIncome: {
     title: 'Other Income', collection: 'otherIncome', icon: 'wallet',
     columns: [
