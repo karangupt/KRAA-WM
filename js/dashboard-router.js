@@ -3,7 +3,7 @@
 let currentView = 'dashboard';
 let editingContext = null; // { moduleKey, id }
 let cachedUsdInrRate = null; // set once user clicks "Convert to ₹" on the dashboard
-let reorderSelection = {}; // { [moduleKey]: selectedRowId } — for the radio-select reorder UI
+let selectedRows = {}; // { [moduleKey]: Set<rowId> } — checkbox multi-select. Reorder needs exactly 1 checked; bulk delete works with 1+.
 
 /* ---------- Router ---------- */
 function navigateTo(view) {
