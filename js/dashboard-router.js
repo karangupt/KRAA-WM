@@ -55,7 +55,7 @@ function monthLabel(monthKey) {
 
 function buildMonthlyTrend() {
   const incomeSources = [...Store.all('invoices'), ...Store.all('otherIncome')];
-  const expenseSources = [...Store.all('expenses'), ...Store.all('personalExpenses')];
+  const expenseSources = [...Store.all('expenses')];
   const map = {};
   incomeSources.forEach(e => {
     if (!e.date) return;
@@ -121,7 +121,6 @@ function renderDashboard() {
   const bookings = Store.all('bookings');
   const invoices = Store.all('invoices');
   const expenses = Store.all('expenses');
-  const personalExpenses = Store.all('personalExpenses');
   const equipment = Store.all('equipment');
   const bankAccounts = Store.all('bankAccounts');
   const fdrd = Store.all('fdrd');
@@ -134,8 +133,7 @@ function renderDashboard() {
 
   const monthRevenue = invoices.filter(i => inMonth(i.date)).reduce((s,i) => s + Number(i.amount||0), 0)
     + otherIncome.filter(o => inMonth(o.date)).reduce((s,o) => s + Number(o.amount||0), 0);
-  const monthExpense = expenses.filter(e => inMonth(e.date)).reduce((s,e) => s + Number(e.amount||0), 0)
-    + personalExpenses.filter(e => inMonth(e.date)).reduce((s,e) => s + Number(e.amount||0), 0);
+  const monthExpense = expenses.filter(e => inMonth(e.date)).reduce((s,e) => s + Number(e.amount||0), 0);
   const monthNet = monthRevenue - monthExpense;
 
   const activeBookings = bookings.filter(b => b.status === 'confirmed' || b.status === 'pending').length;
