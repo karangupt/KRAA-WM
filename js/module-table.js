@@ -186,6 +186,8 @@ function renderModuleView(cfg, key) {
   const visibleColumns = cfg.columns.filter(c => isColumnVisible(key, c.field));
   const summaryDefs = MODULE_SUMMARIES[key];
 
+  const selCount = selectedRows[key] ? selectedRows[key].size : 0;
+
   return `
   <div id="moduleWrap_${key}">
   <div class="section-head">
@@ -194,10 +196,10 @@ function renderModuleView(cfg, key) {
       ${rows.length > 1 ? `
         <div style="display:flex; gap:4px; align-items:center; border:1px solid var(--line); border-radius:8px; padding:4px 6px;">
           <span style="font-size:11px; color:var(--muted); margin-right:4px;">Reorder:</span>
-          <button class="btn secondary" id="moveTopBtn_${key}" title="Move selected to top" ${!reorderSelection[key] ? 'disabled' : ''}>⤒</button>
-          <button class="btn secondary" id="moveUpBtn_${key}" title="Move selected up" ${!reorderSelection[key] ? 'disabled' : ''}>↑</button>
-          <button class="btn secondary" id="moveDownBtn_${key}" title="Move selected down" ${!reorderSelection[key] ? 'disabled' : ''}>↓</button>
-          <button class="btn secondary" id="moveBottomBtn_${key}" title="Move selected to bottom" ${!reorderSelection[key] ? 'disabled' : ''}>⤓</button>
+          <button class="btn secondary" id="moveTopBtn_${key}" title="Move selected to top" ${selCount !== 1 ? 'disabled' : ''}>⤒</button>
+          <button class="btn secondary" id="moveUpBtn_${key}" title="Move selected up" ${selCount !== 1 ? 'disabled' : ''}>↑</button>
+          <button class="btn secondary" id="moveDownBtn_${key}" title="Move selected down" ${selCount !== 1 ? 'disabled' : ''}>↓</button>
+          <button class="btn secondary" id="moveBottomBtn_${key}" title="Move selected to bottom" ${selCount !== 1 ? 'disabled' : ''}>⤓</button>
         </div>` : ''}
       <button class="btn secondary" id="columnsBtn_${key}">⚙ Columns</button>
       <div class="col-panel" id="columnsPanel_${key}" style="display:none;">
@@ -213,6 +215,13 @@ function renderModuleView(cfg, key) {
       <button class="btn" data-add="${key}">+ Add</button>
     </div>
   </div>
+  ${selCount > 0 ? `
+  <div style="display:flex; align-items:center; gap:10px; background:var(--panel-2); border:1px solid var(--line); border-radius:8px; padding:8px 12px; margin-bottom:12px;">
+    <span style="font-size:12.5px; color:var(--muted);">${selCount} selected</span>
+    ${selCount === 1 ? `<button class="btn secondary" id="bulkEditBtn_${key}" style="padding:5px 10px; font-size:12px;">Edit</button>` : ''}
+    <button class="btn secondary" id="bulkDeleteBtn_${key}" style="padding:5px 10px; font-size:12px; color:var(--danger);">Delete</button>
+    <button class="btn secondary" id="bulkClearBtn_${key}" style="padding:5px 10px; font-size:12px; margin-left:auto;">Clear selection</button>
+  </div>` : ''}
   ${cfg.statusTabs ? `
   <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px;">
     <button class="status-tab ${selectedTab === 'all' ? 'active' : ''}" data-tab="all">All</button>
@@ -231,20 +240,23 @@ function renderModuleView(cfg, key) {
     }).join('')}<th></th></tr></thead>
     <tbody>
       ${rows.map(r => `<tr>
-        ${rows.length > 1 ? `<td><input type="radio" name="reorderRadio_${key}" data-reorder-key="${key}" value="${r.id}" ${reorderSelection[key] === r.id ? 'checked' : ''} style="accent-color:var(--amber);"></td>` : ''}
+        ${rows.length > 1 ? `<td><input type="checkbox" data-row-check="${key}" value="${r.id}" ${selectedRows[key] && selectedRows[key].has(r.id) ? 'checked' : ''} style="accent-color:var(--amber); width:16px; height:16px;"></td>` : ''}
         ${visibleColumns.map(c => {
           const w = getColumnWidth(key, c.field);
           return `<td class="${c.cls||''}" style="${w ? `max-width:${w}px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;` : ''}">${c.render ? c.render(r[c.field], r) : (r[c.field] ?? '')}</td>`;
         }).join('')}
-        <td class="row-actions">
+        <td class="row-actions" style="position:relative;">
           ${key === 'invoice' ? `<button data-open-gen="${r.id}">🖨 Open</button>` : ''}
-          <button data-edit="${key}" data-id="${r.id}">Edit</button>
-          <button data-del="${key}" data-id="${r.id}">Delete</button>
+          <button data-row-menu-toggle="${r.id}" style="background:none; border:none; color:var(--muted); cursor:pointer; font-size:16px; padding:2px 8px;">⋮</button>
+          <div class="row-menu-dropdown" data-row-menu="${r.id}" style="display:none; position:absolute; right:8px; top:100%; z-index:30; background:var(--panel); border:1px solid var(--line); border-radius:8px; box-shadow:0 6px 20px rgba(0,0,0,.3); min-width:110px;">
+            <button data-edit="${key}" data-id="${r.id}" style="display:block; width:100%; text-align:left; padding:8px 12px; background:none; border:none; color:var(--text); cursor:pointer; font-size:13px;">Edit</button>
+            <button data-del="${key}" data-id="${r.id}" style="display:block; width:100%; text-align:left; padding:8px 12px; background:none; border:none; color:var(--danger); cursor:pointer; font-size:13px;">Delete</button>
+          </div>
         </td>
       </tr>`).join('')}
     </tbody>
   </table></div>` : `<div class="empty-state"><div class="glyph"><i data-lucide="${cfg.icon}"></i></div>${selectedTab !== 'all' ? `Nothing with status "${selectedTab}" — try the "All" tab above.` : 'No records yet. Click "+ Add" to create the first one.'}</div>`}
-  ${rows.length > 1 ? `<p style="color:var(--muted); font-size:11.5px; margin-top:10px;">Select a row with the radio button, then use the Reorder ⤒ ↑ ↓ ⤓ controls above to move it — this clears any active column sort so your order shows.</p>` : ''}
+  ${rows.length > 1 ? `<p style="color:var(--muted); font-size:11.5px; margin-top:10px;">Check one row, then use the Reorder ⤒ ↑ ↓ ⤓ controls above to move it — this clears any active column sort so your order shows. Check multiple rows to bulk-delete them.</p>` : ''}
   </div>`;
 }
 
@@ -268,21 +280,61 @@ function wireModuleView(key) {
     b.addEventListener('click', () => {
       if (confirm('Delete this record?')) {
         Store.remove(MODULES[key].collection, b.dataset.id);
+        if (selectedRows[key]) selectedRows[key].delete(b.dataset.id);
         render();
         syncCollection(key);
       }
     }));
 
-  root.querySelectorAll('[data-reorder-key]').forEach(radio =>
-    radio.addEventListener('change', () => {
-      reorderSelection[key] = radio.value;
+  // Row checkboxes — multi-select. Powers both the Reorder controls
+  // (need exactly 1 checked) and bulk actions below (1 or more checked).
+  if (!selectedRows[key]) selectedRows[key] = new Set();
+  root.querySelectorAll(`[data-row-check="${key}"]`).forEach(cb =>
+    cb.addEventListener('change', () => {
+      if (cb.checked) selectedRows[key].add(cb.value);
+      else selectedRows[key].delete(cb.value);
       render();
     }));
 
+  root.querySelector(`#bulkEditBtn_${key}`)?.addEventListener('click', () => {
+    const ids = [...selectedRows[key]];
+    if (ids.length === 1) openModal(key, ids[0]);
+  });
+  root.querySelector(`#bulkDeleteBtn_${key}`)?.addEventListener('click', () => {
+    const ids = [...selectedRows[key]];
+    if (!ids.length) return;
+    if (confirm(`Delete ${ids.length} selected record${ids.length > 1 ? 's' : ''}?`)) {
+      ids.forEach(id => Store.remove(MODULES[key].collection, id));
+      selectedRows[key].clear();
+      render();
+      syncCollection(key);
+    }
+  });
+  root.querySelector(`#bulkClearBtn_${key}`)?.addEventListener('click', () => {
+    selectedRows[key].clear();
+    render();
+  });
+
+  // Per-row "⋮" menu (Edit/Delete for that one row) — closes any other
+  // open menu first, and closes itself when clicking anywhere else.
+  root.querySelectorAll('[data-row-menu-toggle]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const id = btn.dataset.rowMenuToggle;
+      const dropdown = root.querySelector(`[data-row-menu="${id}"]`);
+      const isOpen = dropdown.style.display !== 'none';
+      root.querySelectorAll('.row-menu-dropdown').forEach(d => d.style.display = 'none');
+      dropdown.style.display = isOpen ? 'none' : '';
+    });
+  });
+  document.addEventListener('click', function closeRowMenus() {
+    root.querySelectorAll('.row-menu-dropdown').forEach(d => d.style.display = 'none');
+  }, { once: true });
+
   const doMove = (direction) => {
-    const selectedId = reorderSelection[key];
-    if (!selectedId) return;
-    Store.moveItem(MODULES[key].collection, selectedId, direction);
+    const ids = [...selectedRows[key]];
+    if (ids.length !== 1) return;
+    Store.moveItem(MODULES[key].collection, ids[0], direction);
     setSortPref(key, '__manual__', 'asc'); // reveal manual order immediately
     render();
     syncCollection(key);
