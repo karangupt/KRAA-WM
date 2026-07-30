@@ -52,10 +52,6 @@ const MODULE_SUMMARIES = {
     { label: 'This Month', compute: rows => fmt(sumThisMonth(rows)) },
     { label: 'Total (All Time)', compute: rows => fmt(sumAll(rows)) }
   ],
-  personal: [
-    { label: 'This Month', compute: rows => fmt(sumThisMonth(rows)) },
-    { label: 'Total (All Time)', compute: rows => fmt(sumAll(rows)) }
-  ],
   otherIncome: [
     { label: 'This Month', compute: rows => fmt(sumThisMonth(rows)) },
     { label: 'Total (All Time)', compute: rows => fmt(sumAll(rows)) }
