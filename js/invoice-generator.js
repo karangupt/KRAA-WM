@@ -2,7 +2,18 @@
 
 /* ---------- Invoice Generator ---------- */
 function invoiceItemsTotal() {
-  return invoiceDraft.items.reduce((s, it) => s + (Number(it.qty) || 0) * (Number(it.rate) || 0), 0);
+  return invoiceDraft.items.reduce((s, it) => s + (Number(it.qty) || 0) * (Number(it.days) || 1) * (Number(it.rate) || 0), 0);
+}
+
+function invoiceDiscountAmount() {
+  const val = Number(invoiceDraft.discountValue) || 0;
+  if (val <= 0) return 0;
+  const subtotal = invoiceItemsTotal();
+  return invoiceDraft.discountType === 'percent' ? subtotal * val / 100 : Math.min(val, subtotal);
+}
+
+function invoiceGrandTotal() {
+  return invoiceItemsTotal() - invoiceDiscountAmount();
 }
 
 function openInvoiceInGenerator(invoiceId) {
@@ -110,22 +121,32 @@ function renderInvoiceGen() {
     <div class="card">
       <div class="section-head"><h2>3. Items</h2><button class="btn secondary" id="ig_addItem">+ Add item</button></div>
       <div class="table-wrap"><table class="ledger">
-        <thead><tr><th>Description</th><th style="width:80px;">Qty</th><th style="width:120px;">Rate</th>${invoiceDraft.docType === 'Quotation' ? '<th style="width:90px;">GST %</th>' : ''}<th style="width:120px;">Amount</th><th></th></tr></thead>
+        <thead><tr><th>Description</th><th style="width:70px;">Qty</th><th style="width:70px;">Days</th><th style="width:120px;">Rate</th>${invoiceDraft.docType === 'Quotation' ? '<th style="width:90px;">GST %</th>' : ''}<th style="width:120px;">Amount</th><th></th></tr></thead>
         <tbody>
           ${invoiceDraft.items.map((it, i) => `<tr>
             <td><input type="text" data-item-field="desc" data-item-idx="${i}" value="${it.desc}" style="width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text); padding:6px 8px; border-radius:6px; font-size:13px;"></td>
             <td><input type="number" data-item-field="qty" data-item-idx="${i}" value="${it.qty}" style="width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text); padding:6px 8px; border-radius:6px; font-size:13px;"></td>
+            <td><input type="number" data-item-field="days" data-item-idx="${i}" value="${it.days != null ? it.days : 1}" min="1" style="width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text); padding:6px 8px; border-radius:6px; font-size:13px;"></td>
             <td><input type="number" data-item-field="rate" data-item-idx="${i}" value="${it.rate}" style="width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text); padding:6px 8px; border-radius:6px; font-size:13px;"></td>
             ${invoiceDraft.docType === 'Quotation' ? `<td><input type="number" data-item-field="gstRate" data-item-idx="${i}" value="${it.gstRate != null ? it.gstRate : 18}" style="width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text); padding:6px 8px; border-radius:6px; font-size:13px;"></td>` : ''}
-            <td class="name-cell">${fmt((Number(it.qty)||0)*(Number(it.rate)||0))}</td>
+            <td class="name-cell">${fmt((Number(it.qty)||0)*(Number(it.days)||1)*(Number(it.rate)||0))}</td>
             <td><button data-remove-item="${i}" style="background:none; border:none; color:var(--danger); cursor:pointer; display:flex; align-items:center;"><i data-lucide="x" style="width:14px;height:14px;"></i></button></td>
           </tr>
-          ${invoiceDraft.docType === 'Quotation' ? `<tr><td colspan="6" style="padding-top:0;">
+          ${invoiceDraft.docType === 'Quotation' ? `<tr><td colspan="7" style="padding-top:0;">
             <textarea data-item-field="longDesc" data-item-idx="${i}" rows="2" placeholder="Detailed product description for this item (optional)..." style="width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text); padding:6px 8px; border-radius:6px; font-size:12.5px; font-family:inherit;">${it.longDesc || ''}</textarea>
           </td></tr>` : ''}`).join('')}
         </tbody>
       </table></div>
-      <p style="text-align:right; margin-top:10px; font-family:var(--font-mono); font-size:15px;">Total: <strong style="color:var(--amber);">${fmt(total)}</strong></p>
+      <div style="display:flex; justify-content:flex-end; gap:10px; align-items:center; margin-top:12px;">
+        <label style="font-size:12.5px; color:var(--muted);">Discount</label>
+        <select id="ig_discountType" style="width:auto;">
+          <option value="amount" ${invoiceDraft.discountType === 'amount' ? 'selected' : ''}>₹</option>
+          <option value="percent" ${invoiceDraft.discountType === 'percent' ? 'selected' : ''}>%</option>
+        </select>
+        <input type="number" id="ig_discountValue" value="${invoiceDraft.discountValue || 0}" min="0" style="width:100px;">
+      </div>
+      <p id="ig_subtotalLine" style="text-align:right; margin-top:6px; font-size:12.5px; color:var(--muted);">Subtotal: ${fmt(total)}${invoiceDiscountAmount() > 0 ? ` &nbsp;·&nbsp; Discount: −${fmt(invoiceDiscountAmount())}` : ''}</p>
+      <p style="text-align:right; margin-top:2px; font-family:var(--font-mono); font-size:15px;">Total: <strong id="ig_totalAmount" style="color:var(--amber);">${fmt(invoiceGrandTotal())}</strong></p>
     </div>
 
     ${invoiceDraft.docType !== 'Quotation' ? `
@@ -166,6 +187,8 @@ function renderInvoicePrintable() {
   if (invoiceDraft.docType === 'Quotation') return renderQuotationDocument();
 
   const total = invoiceItemsTotal();
+  const discount = invoiceDiscountAmount();
+  const grandTotal = invoiceGrandTotal();
   const deliveryAddr = invoiceDraft.sameAsCustomer ? invoiceDraft.customerAddress : invoiceDraft.deliveryAddress;
   const title = invoiceDraft.docType === 'Quotation' ? 'QUOTATION'
     : invoiceDraft.docType === 'Provisional Invoice' ? 'PROVISIONAL INVOICE – CUM – DELIVERY CHALLAN'
@@ -174,7 +197,7 @@ function renderInvoicePrintable() {
   // UPI payment QR — scanning it opens the customer's UPI app (GPay/PhonePe/
   // etc.) with the payee, amount, and invoice number already filled in.
   // Not shown on Quotations, since there's nothing to pay yet.
-  const upiUri = `upi://pay?pa=${encodeURIComponent(COMPANY_INFO.upiId)}&pn=${encodeURIComponent(COMPANY_INFO.name)}&am=${encodeURIComponent(total)}&cu=INR&tn=${encodeURIComponent('Invoice ' + (invoiceDraft.invoiceNo || ''))}`;
+  const upiUri = `upi://pay?pa=${encodeURIComponent(COMPANY_INFO.upiId)}&pn=${encodeURIComponent(COMPANY_INFO.name)}&am=${encodeURIComponent(grandTotal)}&cu=INR&tn=${encodeURIComponent('Invoice ' + (invoiceDraft.invoiceNo || ''))}`;
   const qrImgUrl = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(upiUri)}`;
 
   return `
@@ -213,26 +236,30 @@ function renderInvoicePrintable() {
     </div>
 
     <table class="invoice-items">
-      <thead><tr><th>SI No</th><th>Description of Goods</th><th>Quantity</th><th>Rate</th><th>Amount</th></tr></thead>
+      <thead><tr><th>SI No</th><th>Description of Goods</th><th>Quantity</th><th>Days</th><th>Rate</th><th>Amount</th></tr></thead>
       <tbody>
-        ${invoiceDraft.items.map((it, i) => `<tr><td>${i+1}</td><td>${it.desc}</td><td>${it.qty}</td><td>${it.rate ? fmt(it.rate) : ''}</td><td>${fmt((Number(it.qty)||0)*(Number(it.rate)||0))}</td></tr>`).join('')}
-        ${Array.from({length: Math.max(0, 6 - invoiceDraft.items.length)}).map(() => `<tr><td>&nbsp;</td><td></td><td></td><td></td><td></td></tr>`).join('')}
-        ${invoiceDraft.paid && invoiceDraft.docType !== 'Quotation' ? `<tr><td colspan="5" style="padding-top:16px;">
+        ${invoiceDraft.items.map((it, i) => `<tr><td>${i+1}</td><td>${it.desc}</td><td>${it.qty}</td><td>${it.days || 1}</td><td>${it.rate ? fmt(it.rate) : ''}</td><td>${fmt((Number(it.qty)||0)*(Number(it.days)||1)*(Number(it.rate)||0))}</td></tr>`).join('')}
+        ${Array.from({length: Math.max(0, 6 - invoiceDraft.items.length)}).map(() => `<tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td></tr>`).join('')}
+        ${invoiceDraft.paid && invoiceDraft.docType !== 'Quotation' ? `<tr><td colspan="6" style="padding-top:16px;">
           <strong>Payment Confirmation</strong><br>
           This is to confirm that payment against the below invoice has been successfully received.<br><br>
           <em>Invoice No.: ${invoiceDraft.invoiceNo}<br>
-          Invoice Amount: ${fmt(total)}<br>
+          Invoice Amount: ${fmt(grandTotal)}<br>
           Payment Mode: ${invoiceDraft.paymentMode}<br>
           Payment Received On: ${fmtDate(invoiceDraft.paymentDate)}<br>
           ${invoiceDraft.paymentMode !== 'Cash' && invoiceDraft.txnId ? `Transaction ID: ${invoiceDraft.txnId}<br>` : ''}
           Status: PAID</em>
         </td></tr>` : ''}
       </tbody>
-      <tfoot><tr><td colspan="4" style="text-align:right;"><strong>Total</strong></td><td><strong>${fmt(total)}</strong></td></tr></tfoot>
+      <tfoot>
+        ${discount > 0 ? `<tr><td colspan="5" style="text-align:right;">Subtotal</td><td>${fmt(total)}</td></tr>
+        <tr><td colspan="5" style="text-align:right;">Discount</td><td>−${fmt(discount)}</td></tr>` : ''}
+        <tr><td colspan="5" style="text-align:right;"><strong>Total</strong></td><td><strong>${fmt(grandTotal)}</strong></td></tr>
+      </tfoot>
     </table>
 
     <div class="invoice-words-row">
-      <div>Amount Chargeable (in words)<br><strong>Indian Rupees: ${numToWordsIndian(total)} Only</strong></div>
+      <div>Amount Chargeable (in words)<br><strong>Indian Rupees: ${numToWordsIndian(grandTotal)} Only</strong></div>
       <div style="text-align:right;">E. &amp; O.E</div>
     </div>
 
@@ -282,9 +309,10 @@ function renderQuotationDocument() {
   let subTotal = 0, cgstTotal = 0, sgstTotal = 0;
   const rows = invoiceDraft.items.map((it, i) => {
     const qty = Number(it.qty) || 0;
+    const days = Number(it.days) || 1;
     const rate = Number(it.rate) || 0;
     const gstRate = it.gstRate != null ? Number(it.gstRate) : 18;
-    const amount = qty * rate;
+    const amount = qty * days * rate;
     const cgst = amount * gstRate / 200;
     const sgst = amount * gstRate / 200;
     const rowTotal = amount + cgst + sgst;
@@ -295,16 +323,18 @@ function renderQuotationDocument() {
         <td>${it.desc || ''}</td>
         <td style="text-align:center;">${gstRate}%</td>
         <td style="text-align:center;">${qty}</td>
+        <td style="text-align:center;">${days}</td>
         <td style="text-align:right;">${fmt(rate)}</td>
         <td style="text-align:right;">${fmt(amount)}</td>
         <td style="text-align:right;">${fmt(cgst)}</td>
         <td style="text-align:right;">${fmt(sgst)}</td>
         <td style="text-align:right;">${fmt(rowTotal)}</td>
       </tr>
-      ${it.longDesc ? `<tr><td></td><td colspan="8" style="font-size:10.5px; color:#444; padding-top:0;">${it.longDesc.replace(/\n/g, '<br>')}</td></tr>` : ''}
+      ${it.longDesc ? `<tr><td></td><td colspan="9" style="font-size:10.5px; color:#444; padding-top:0;">${it.longDesc.replace(/\n/g, '<br>')}</td></tr>` : ''}
     `;
   }).join('');
-  const grandTotal = subTotal + cgstTotal + sgstTotal;
+  const discount = invoiceDiscountAmount();
+  const grandTotal = subTotal + cgstTotal + sgstTotal - discount;
 
   return `
   <div class="invoice-sheet q-sheet">
@@ -349,7 +379,7 @@ function renderQuotationDocument() {
     <table class="q-items-table">
       <thead>
         <tr>
-          <th></th><th>Item</th><th>GST Rate</th><th>Quantity</th><th>Rate</th><th>Amount</th><th>CGST</th><th>SGST</th><th>Total</th>
+          <th></th><th>Item</th><th>GST Rate</th><th>Quantity</th><th>Days</th><th>Rate</th><th>Amount</th><th>CGST</th><th>SGST</th><th>Total</th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>
@@ -360,6 +390,7 @@ function renderQuotationDocument() {
         <tr><td>Amount</td><td>${fmt(subTotal)}</td></tr>
         <tr><td>CGST</td><td>${fmt(cgstTotal)}</td></tr>
         <tr><td>SGST</td><td>${fmt(sgstTotal)}</td></tr>
+        ${discount > 0 ? `<tr><td>Discount</td><td>−${fmt(discount)}</td></tr>` : ''}
         <tr class="q-grand-total"><td>Total (INR)</td><td>${fmt(grandTotal)}</td></tr>
       </table>
     </div>
@@ -401,6 +432,8 @@ function wireInvoiceGen() {
   bind('ig_customerGST', 'customerGST');
   bind('ig_customerPAN', 'customerPAN');
   bind('ig_placeOfSupply', 'placeOfSupply');
+  bind('ig_discountType', 'discountType', 'change');
+  bind('ig_discountValue', 'discountValue');
 
   root.querySelector('#ig_quotationCategory')?.addEventListener('change', (e) => {
     invoiceDraft.quotationCategory = e.target.value;
@@ -442,7 +475,7 @@ function wireInvoiceGen() {
   });
 
   root.querySelector('#ig_addItem')?.addEventListener('click', () => {
-    invoiceDraft.items.push({ desc: '', qty: 1, rate: 0, gstRate: 18, longDesc: '' });
+    invoiceDraft.items.push({ desc: '', qty: 1, days: 1, rate: 0, gstRate: 18, longDesc: '' });
     render();
   });
 
@@ -461,7 +494,7 @@ function wireInvoiceGen() {
       status.textContent = 'Add an Invoice Number first — it\'s used to find/update the record.';
       return;
     }
-    const total = invoiceItemsTotal();
+    const total = invoiceGrandTotal();
     const existing = Store.all('invoices').find(inv => inv.number === invoiceDraft.invoiceNo);
     // Store both the flat summary fields (used by Dashboard/Reports revenue
     // calculations) AND the full snapshot as JSON, so this exact invoice can
@@ -504,6 +537,10 @@ function wireInvoiceGen() {
 // Lightweight refresh: just updates the live total/preview without a full
 // re-render, so the form doesn't lose focus while typing.
 function wireInvoiceGenRefresh() {
-  const totalEl = document.querySelector('#invoiceGenControls .card:nth-child(3) p strong');
-  if (totalEl) totalEl.textContent = fmt(invoiceItemsTotal());
+  const subtotalEl = document.querySelector('#ig_subtotalLine');
+  const totalEl = document.querySelector('#ig_totalAmount');
+  const subtotal = invoiceItemsTotal();
+  const discount = invoiceDiscountAmount();
+  if (subtotalEl) subtotalEl.innerHTML = `Subtotal: ${fmt(subtotal)}${discount > 0 ? ` &nbsp;·&nbsp; Discount: −${fmt(discount)}` : ''}`;
+  if (totalEl) totalEl.textContent = fmt(invoiceGrandTotal());
 }
