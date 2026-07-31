@@ -89,9 +89,11 @@ function renderInvoiceGen() {
         <div class="field"><label>Contact person name</label><input type="text" id="ig_contactPersonName" value="${invoiceDraft.contactPersonName}"></div>
         <div class="field"><label>Contact person number</label><input type="text" id="ig_contactPersonNumber" value="${invoiceDraft.contactPersonNumber}"></div>
         <div class="field"><label>PO / Reference number (optional)</label><input type="text" id="ig_poNumber" value="${invoiceDraft.poNumber}" placeholder="Customer's purchase order no."></div>
-        ${invoiceDraft.docType === 'Quotation' ? `
+        ${(invoiceDraft.docType === 'Quotation' || invoiceDraft.docType === 'Invoice') ? `
         <div class="field"><label>Customer PAN</label><input type="text" id="ig_customerPAN" value="${invoiceDraft.customerPAN || ''}" placeholder="e.g. AANCR3989D"></div>
         <div class="field"><label>Place of Supply</label><input type="text" id="ig_placeOfSupply" value="${invoiceDraft.placeOfSupply || ''}" placeholder="e.g. Maharashtra (27)"></div>
+        ` : ''}
+        ${invoiceDraft.docType === 'Quotation' ? `
         <div class="field"><label>Quotation Category</label>
           <select id="ig_quotationCategory">
             <option value="Rental" ${invoiceDraft.quotationCategory === 'Rental' ? 'selected' : ''}>Rental</option>
@@ -121,18 +123,18 @@ function renderInvoiceGen() {
     <div class="card">
       <div class="section-head"><h2>3. Items</h2><button class="btn secondary" id="ig_addItem">+ Add item</button></div>
       <div class="table-wrap"><table class="ledger">
-        <thead><tr><th>Description</th><th style="width:70px;">Qty</th><th style="width:70px;">Days</th><th style="width:120px;">Rate</th>${invoiceDraft.docType === 'Quotation' ? '<th style="width:90px;">GST %</th>' : ''}<th style="width:120px;">Amount</th><th></th></tr></thead>
+        <thead><tr><th>Description</th><th style="width:70px;">Qty</th><th style="width:70px;">Days</th><th style="width:120px;">Rate</th>${(invoiceDraft.docType === 'Quotation' || invoiceDraft.docType === 'Invoice') ? '<th style="width:90px;">GST %</th>' : ''}<th style="width:120px;">Amount</th><th></th></tr></thead>
         <tbody>
           ${invoiceDraft.items.map((it, i) => `<tr>
             <td><input type="text" data-item-field="desc" data-item-idx="${i}" value="${it.desc}" style="width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text); padding:6px 8px; border-radius:6px; font-size:13px;"></td>
             <td><input type="number" data-item-field="qty" data-item-idx="${i}" value="${it.qty}" style="width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text); padding:6px 8px; border-radius:6px; font-size:13px;"></td>
             <td><input type="number" data-item-field="days" data-item-idx="${i}" value="${it.days != null ? it.days : 1}" min="1" style="width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text); padding:6px 8px; border-radius:6px; font-size:13px;"></td>
             <td><input type="number" data-item-field="rate" data-item-idx="${i}" value="${it.rate}" style="width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text); padding:6px 8px; border-radius:6px; font-size:13px;"></td>
-            ${invoiceDraft.docType === 'Quotation' ? `<td><input type="number" data-item-field="gstRate" data-item-idx="${i}" value="${it.gstRate != null ? it.gstRate : 18}" style="width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text); padding:6px 8px; border-radius:6px; font-size:13px;"></td>` : ''}
+            ${(invoiceDraft.docType === 'Quotation' || invoiceDraft.docType === 'Invoice') ? `<td><input type="number" data-item-field="gstRate" data-item-idx="${i}" value="${it.gstRate != null ? it.gstRate : 18}" style="width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text); padding:6px 8px; border-radius:6px; font-size:13px;"></td>` : ''}
             <td class="name-cell">${fmt((Number(it.qty)||0)*(Number(it.days)||1)*(Number(it.rate)||0))}</td>
             <td><button data-remove-item="${i}" style="background:none; border:none; color:var(--danger); cursor:pointer; display:flex; align-items:center;"><i data-lucide="x" style="width:14px;height:14px;"></i></button></td>
           </tr>
-          ${invoiceDraft.docType === 'Quotation' ? `<tr><td colspan="7" style="padding-top:0;">
+          ${(invoiceDraft.docType === 'Quotation' || invoiceDraft.docType === 'Invoice') ? `<tr><td colspan="7" style="padding-top:0;">
             <textarea data-item-field="longDesc" data-item-idx="${i}" rows="2" placeholder="Detailed product description for this item (optional)..." style="width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text); padding:6px 8px; border-radius:6px; font-size:12.5px; font-family:inherit;">${it.longDesc || ''}</textarea>
           </td></tr>` : ''}`).join('')}
         </tbody>
@@ -184,7 +186,7 @@ function renderInvoiceGen() {
 }
 
 function renderInvoicePrintable() {
-  if (invoiceDraft.docType === 'Quotation') return renderQuotationDocument();
+  if (invoiceDraft.docType === 'Quotation' || invoiceDraft.docType === 'Invoice') return renderQuotationDocument();
 
   const total = invoiceItemsTotal();
   const discount = invoiceDiscountAmount();
@@ -305,6 +307,7 @@ function renderInvoicePrintable() {
 // type = Quotation. Invoices and Provisional Invoices keep the regular
 // layout above.
 function renderQuotationDocument() {
+  const isInvoice = invoiceDraft.docType === 'Invoice';
   const validTill = invoiceDraft.deliveryDate ? fmtDate(invoiceDraft.deliveryDate) : '—';
   let subTotal = 0, cgstTotal = 0, sgstTotal = 0;
   const rows = invoiceDraft.items.map((it, i) => {
@@ -336,15 +339,20 @@ function renderQuotationDocument() {
   const discount = invoiceDiscountAmount();
   const grandTotal = subTotal + cgstTotal + sgstTotal - discount;
 
+  // UPI payment QR — only relevant for an actual Invoice, not a Quotation
+  // (nothing to pay yet at quotation stage).
+  const upiUri = `upi://pay?pa=${encodeURIComponent(COMPANY_INFO.upiId)}&pn=${encodeURIComponent(COMPANY_INFO.name)}&am=${encodeURIComponent(grandTotal)}&cu=INR&tn=${encodeURIComponent('Invoice ' + (invoiceDraft.invoiceNo || ''))}`;
+  const qrImgUrl = `https://api.qrserver.com/v1/create-qr-code/?size=110x110&data=${encodeURIComponent(upiUri)}`;
+
   return `
   <div class="invoice-sheet q-sheet">
     <div class="q-header-row">
       <div>
-        <div class="q-title">Quotation</div>
+        <div class="q-title">${isInvoice ? 'Invoice' : 'Quotation'}</div>
         <table class="q-meta-table">
-          <tr><td>Quotation No</td><td><strong>${invoiceDraft.invoiceNo || '—'}</strong></td></tr>
-          <tr><td>Quotation Date</td><td>${fmtDate(invoiceDraft.date)}</td></tr>
-          <tr><td>Valid Till Date</td><td>${validTill}</td></tr>
+          <tr><td>${isInvoice ? 'Invoice No' : 'Quotation No'}</td><td><strong>${invoiceDraft.invoiceNo || '—'}</strong></td></tr>
+          <tr><td>${isInvoice ? 'Invoice Date' : 'Quotation Date'}</td><td>${fmtDate(invoiceDraft.date)}</td></tr>
+          ${isInvoice ? `<tr><td>Delivery Date</td><td>${validTill}</td></tr>` : `<tr><td>Valid Till Date</td><td>${validTill}</td></tr>`}
         </table>
       </div>
       <div class="q-logo-box">
@@ -354,7 +362,7 @@ function renderQuotationDocument() {
 
     <div class="q-addr-row">
       <div class="q-addr-box">
-        <div class="q-addr-heading">Quotation From</div>
+        <div class="q-addr-heading">${isInvoice ? "Invoice From" : "Quotation From"}</div>
         <strong>${COMPANY_INFO.name}</strong><br>
         ${COMPANY_INFO.addressLines.join('<br>')}<br>
         Udyam Registration No.: ${COMPANY_INFO.udyam}<br>
@@ -362,7 +370,7 @@ function renderQuotationDocument() {
         Phone: ${COMPANY_INFO.mobile}
       </div>
       <div class="q-addr-box">
-        <div class="q-addr-heading">Quotation For</div>
+        <div class="q-addr-heading">${isInvoice ? "Bill To" : "Quotation For"}</div>
         <strong>${invoiceDraft.customerName || '—'}</strong><br>
         ${(invoiceDraft.customerAddress || '').replace(/\n/g, '<br>')}<br>
         ${invoiceDraft.customerGST ? `GSTIN: ${invoiceDraft.customerGST}<br>` : ''}
@@ -397,7 +405,38 @@ function renderQuotationDocument() {
 
     <p style="margin-top:10px; font-size:11px;">Amount Chargeable (in words): <strong>Indian Rupees ${numToWordsIndian(Math.round(grandTotal))} Only</strong></p>
 
-    ${invoiceDraft.quotationCategory === 'Rental' ? `
+    ${isInvoice ? `
+    <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:16px; margin-top:16px; border-top:1px solid #ddd; padding-top:12px;">
+      <div style="font-size:11px;">
+        <strong>Mode of Payment: Only Digital Payments Accepted (Bank Transfer / UPI / NEFT / RTGS). Cash Payment Not Accepted.</strong><br>
+        GPay: UPI ID: ${COMPANY_INFO.upiId}<br>
+        Online Payment Link: <a href="${COMPANY_INFO.paymentLink}">${COMPANY_INFO.paymentLink}</a><br>
+        *If payment is made using a Credit Card, an additional 2.5% processing charge will be applicable
+        ${invoiceDraft.paid ? `
+        <div style="margin-top:10px;">
+          <strong>Payment Confirmation</strong><br>
+          This is to confirm that payment against the below invoice has been successfully received.<br>
+          Invoice No.: ${invoiceDraft.invoiceNo}<br>
+          Invoice Amount: ${fmt(grandTotal)}<br>
+          Payment Mode: ${invoiceDraft.paymentMode}<br>
+          Payment Received On: ${fmtDate(invoiceDraft.paymentDate)}<br>
+          ${invoiceDraft.paymentMode !== 'Cash' && invoiceDraft.txnId ? `Transaction ID: ${invoiceDraft.txnId}<br>` : ''}
+          Status: PAID
+        </div>` : ''}
+      </div>
+      <div style="text-align:center; flex-shrink:0;">
+        <img src="${qrImgUrl}" alt="Scan to Pay via UPI" style="width:100px; height:100px;">
+        <div style="font-size:9px; color:#666; margin-top:2px;">Scan to Pay via UPI</div>
+      </div>
+    </div>
+
+    <div style="margin-top:14px; font-size:10px; line-height:1.5;">
+      <strong>Bank Details: (For Cheque Payment / NEFT / RTGS Transfer)</strong><br>
+      Bank Name: ${COMPANY_INFO.bankName} · A/c No.: ${COMPANY_INFO.bankAccNo} · A/c Name: ${COMPANY_INFO.bankAccName} · Branch &amp; IFSC: ${COMPANY_INFO.bankBranchIfsc}
+    </div>
+    ` : ''}
+
+    ${!isInvoice && invoiceDraft.quotationCategory === 'Rental' ? `
     <div class="invoice-terms" style="margin-top:14px;">
       <strong>Terms &amp; Conditions:</strong>
       <ol>${RENTAL_TERMS[invoiceDraft.rentalSubType || 'Projector'].map(t => `<li>${t}</li>`).join('')}</ol>
