@@ -553,6 +553,25 @@ function wireInvoiceGen() {
     } else {
       Store.add('invoices', record);
     }
+    const savedId = existing ? existing.id : Store.all('invoices').find(inv => inv.number === invoiceDraft.invoiceNo).id;
+
+    // Auto-create a matching Payments entry the moment an invoice is marked
+    // paid — so it shows up in Payments without a separate manual entry.
+    const wasAlreadyPaid = existing && existing.status === 'paid';
+    if (invoiceDraft.paid && !wasAlreadyPaid) {
+      const alreadyLogged = invoicePaidSoFar(savedId);
+      const remaining = total - alreadyLogged;
+      if (remaining > 0) {
+        Store.add('payments', {
+          invoiceId: savedId,
+          date: invoiceDraft.paymentDate || todayStr(),
+          amount: remaining,
+          mode: invoiceDraft.paymentMode || 'Bank Transfer'
+        });
+        syncCollection('payments');
+      }
+    }
+
     syncCollection('invoice');
     status.style.color = 'var(--teal)';
     status.textContent = `Saved (${existing ? 'updated' : 'new'}). Find it anytime in "Quotation & Invoice" — click "Open" on that row to reprint or resend it.`;
