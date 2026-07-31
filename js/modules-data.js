@@ -44,7 +44,29 @@ const MODULES = {
       { name: 'endDate', label: 'End date', type: 'date' },
       { name: 'amount', label: 'Amount (₹)', type: 'number' },
       { name: 'status', label: 'Status', type: 'select', options: ['pending','confirmed','completed','cancelled'] }
-    ]
+    ],
+    onSave: (saved) => {
+      // If a client name was typed but not linked to an existing Customer
+      // record, auto-create (or match) one — avoids typing the same
+      // person into both Bookings and Customers separately.
+      if (!saved.clientName) return;
+      if (saved.customerId && Store.get('customers', saved.customerId)) return; // already linked
+
+      const nameLower = saved.clientName.trim().toLowerCase();
+      const match = Store.all('customers').find(c => (c.name || '').trim().toLowerCase() === nameLower);
+      let customerId;
+      if (match) {
+        customerId = match.id;
+      } else {
+        const created = Store.add('customers', {
+          name: saved.clientName,
+          companyName: saved.companyName || ''
+        });
+        customerId = created.id;
+        syncCollection('customer');
+      }
+      Store.update('bookings', saved.id, { customerId });
+    }
   },
   inventory: {
     title: 'Equipment Inventory', collection: 'equipment', icon: 'projector',
