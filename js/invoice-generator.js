@@ -89,7 +89,7 @@ function renderInvoiceGen() {
         <div class="field"><label>Contact person name</label><input type="text" id="ig_contactPersonName" value="${invoiceDraft.contactPersonName}"></div>
         <div class="field"><label>Contact person number</label><input type="text" id="ig_contactPersonNumber" value="${invoiceDraft.contactPersonNumber}"></div>
         <div class="field"><label>PO / Reference number (optional)</label><input type="text" id="ig_poNumber" value="${invoiceDraft.poNumber}" placeholder="Customer's purchase order no."></div>
-        ${(invoiceDraft.docType === 'Quotation' || invoiceDraft.docType === 'Invoice') ? `
+        ${(invoiceDraft.docType === 'Quotation' || invoiceDraft.docType === 'Tax Invoice') ? `
         <div class="field"><label>Customer PAN</label><input type="text" id="ig_customerPAN" value="${invoiceDraft.customerPAN || ''}" placeholder="e.g. AANCR3989D"></div>
         <div class="field"><label>Place of Supply</label><input type="text" id="ig_placeOfSupply" value="${invoiceDraft.placeOfSupply || ''}" placeholder="e.g. Maharashtra (27)"></div>
         ` : ''}
@@ -123,18 +123,18 @@ function renderInvoiceGen() {
     <div class="card">
       <div class="section-head"><h2>3. Items</h2><button class="btn secondary" id="ig_addItem">+ Add item</button></div>
       <div class="table-wrap"><table class="ledger">
-        <thead><tr><th>Description</th><th style="width:70px;">Qty</th><th style="width:70px;">Days</th><th style="width:120px;">Rate</th>${(invoiceDraft.docType === 'Quotation' || invoiceDraft.docType === 'Invoice') ? '<th style="width:90px;">GST %</th>' : ''}<th style="width:120px;">Amount</th><th></th></tr></thead>
+        <thead><tr><th>Description</th><th style="width:70px;">Qty</th><th style="width:70px;">Days</th><th style="width:120px;">Rate</th>${(invoiceDraft.docType === 'Quotation' || invoiceDraft.docType === 'Tax Invoice') ? '<th style="width:90px;">GST %</th>' : ''}<th style="width:120px;">Amount</th><th></th></tr></thead>
         <tbody>
           ${invoiceDraft.items.map((it, i) => `<tr>
             <td><input type="text" data-item-field="desc" data-item-idx="${i}" value="${it.desc}" style="width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text); padding:6px 8px; border-radius:6px; font-size:13px;"></td>
             <td><input type="number" data-item-field="qty" data-item-idx="${i}" value="${it.qty}" style="width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text); padding:6px 8px; border-radius:6px; font-size:13px;"></td>
             <td><input type="number" data-item-field="days" data-item-idx="${i}" value="${it.days != null ? it.days : 1}" min="1" style="width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text); padding:6px 8px; border-radius:6px; font-size:13px;"></td>
             <td><input type="number" data-item-field="rate" data-item-idx="${i}" value="${it.rate}" style="width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text); padding:6px 8px; border-radius:6px; font-size:13px;"></td>
-            ${(invoiceDraft.docType === 'Quotation' || invoiceDraft.docType === 'Invoice') ? `<td><input type="number" data-item-field="gstRate" data-item-idx="${i}" value="${it.gstRate != null ? it.gstRate : 18}" style="width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text); padding:6px 8px; border-radius:6px; font-size:13px;"></td>` : ''}
+            ${(invoiceDraft.docType === 'Quotation' || invoiceDraft.docType === 'Tax Invoice') ? `<td><input type="number" data-item-field="gstRate" data-item-idx="${i}" value="${it.gstRate != null ? it.gstRate : 18}" style="width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text); padding:6px 8px; border-radius:6px; font-size:13px;"></td>` : ''}
             <td class="name-cell">${fmt((Number(it.qty)||0)*(Number(it.days)||1)*(Number(it.rate)||0))}</td>
             <td><button data-remove-item="${i}" style="background:none; border:none; color:var(--danger); cursor:pointer; display:flex; align-items:center;"><i data-lucide="x" style="width:14px;height:14px;"></i></button></td>
           </tr>
-          ${(invoiceDraft.docType === 'Quotation' || invoiceDraft.docType === 'Invoice') ? `<tr><td colspan="7" style="padding-top:0;">
+          ${(invoiceDraft.docType === 'Quotation' || invoiceDraft.docType === 'Tax Invoice') ? `<tr><td colspan="7" style="padding-top:0;">
             <textarea data-item-field="longDesc" data-item-idx="${i}" rows="2" placeholder="Detailed product description for this item (optional)..." style="width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text); padding:6px 8px; border-radius:6px; font-size:12.5px; font-family:inherit;">${it.longDesc || ''}</textarea>
           </td></tr>` : ''}`).join('')}
         </tbody>
@@ -186,7 +186,7 @@ function renderInvoiceGen() {
 }
 
 function renderInvoicePrintable() {
-  if (invoiceDraft.docType === 'Quotation' || invoiceDraft.docType === 'Invoice') return renderQuotationDocument();
+  if (invoiceDraft.docType === 'Quotation' || invoiceDraft.docType === 'Tax Invoice') return renderQuotationDocument();
 
   const total = invoiceItemsTotal();
   const discount = invoiceDiscountAmount();
@@ -307,7 +307,7 @@ function renderInvoicePrintable() {
 // type = Quotation. Invoices and Provisional Invoices keep the regular
 // layout above.
 function renderQuotationDocument() {
-  const isInvoice = invoiceDraft.docType === 'Invoice';
+  const isInvoice = invoiceDraft.docType === 'Tax Invoice';
   const validTill = invoiceDraft.deliveryDate ? fmtDate(invoiceDraft.deliveryDate) : '—';
   let subTotal = 0, cgstTotal = 0, sgstTotal = 0;
   const rows = invoiceDraft.items.map((it, i) => {
