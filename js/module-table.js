@@ -1,6 +1,7 @@
 /* Workspace App — generic module table view (list/columns/sort/tabs) shared by every module */
 
 /* ---------- Generic module table view ---------- */
+const moduleSearchQuery = {}; // { [moduleKey]: string } — live search box text, per module
 const COLUMN_PREFS_KEY = 'workspace_column_prefs_v1';
 const COLUMN_WIDTH_KEY = 'workspace_column_width_v1';
 migrateLegacyKey('kraa_column_prefs_v1', COLUMN_PREFS_KEY);
@@ -169,6 +170,11 @@ function renderModuleView(cfg, key) {
     rows = rows.filter(r => r.status === selectedTab);
   }
 
+  const searchQuery = (moduleSearchQuery[key] || '').trim().toLowerCase();
+  if (cfg.searchFields && searchQuery) {
+    rows = rows.filter(r => cfg.searchFields.some(f => String(r[f] ?? '').toLowerCase().includes(searchQuery)));
+  }
+
   // Sorting: an explicit column-header click (sortPref) always wins; otherwise
   // fall back to the module's default sortField (e.g. Bookings by Start date).
   const sortPref = getSortPref(key);
@@ -215,6 +221,10 @@ function renderModuleView(cfg, key) {
       <button class="btn" data-add="${key}">+ Add</button>
     </div>
   </div>
+  ${cfg.searchFields ? `
+  <div style="margin-bottom:14px;">
+    <input type="text" id="searchBox_${key}" placeholder="Search by ${cfg.searchFields.map(f => f === 'number' ? 'invoice number' : f === 'date' ? 'date' : 'customer name').join(' / ')}..." value="${moduleSearchQuery[key] || ''}" style="width:100%; max-width:360px; background:var(--panel-2); border:1px solid var(--line); color:var(--text); padding:9px 12px; border-radius:8px; font-size:13.5px;">
+  </div>` : ''}
   ${selCount > 0 ? `
   <div style="display:flex; align-items:center; gap:10px; background:var(--panel-2); border:1px solid var(--line); border-radius:8px; padding:8px 12px; margin-bottom:12px;">
     <span style="font-size:12.5px; color:var(--muted);">${selCount} selected</span>
@@ -263,6 +273,22 @@ function renderModuleView(cfg, key) {
 
 function wireModuleView(key) {
   const root = $('#moduleWrap_' + key) || $('#viewRoot');
+  const searchBox = root.querySelector(`#searchBox_${key}`);
+  if (searchBox) {
+    searchBox.addEventListener('input', () => {
+      moduleSearchQuery[key] = searchBox.value;
+      const cursorPos = searchBox.selectionStart;
+      render();
+      // Re-render wipes and rebuilds the DOM, which drops focus — put it
+      // back so typing feels continuous instead of needing to re-click.
+      const newBox = document.querySelector(`#searchBox_${key}`);
+      if (newBox) {
+        newBox.focus();
+        newBox.setSelectionRange(cursorPos, cursorPos);
+      }
+    });
+  }
+
   const addBtn = root.querySelector(`[data-add="${key}"]`);
   if (addBtn) addBtn.addEventListener('click', () => openModal(key, null));
   root.querySelectorAll(`[data-open-gen]`).forEach(b =>
