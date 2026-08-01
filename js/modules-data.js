@@ -12,6 +12,7 @@ const MODULES = {
     ],
     fields: [
       { name: 'companyName', label: 'Company name', type: 'text' },
+      { name: 'companyAddress', label: 'Company address (used on invoices)', type: 'text' },
       { name: 'name', label: 'Contact Name', type: 'text', required: true },
       { name: 'phone', label: 'Contact Number', type: 'text' },
       { name: 'additionalContacts', label: 'Additional contacts at this company (optional)', type: 'contacts-list' },
@@ -38,11 +39,12 @@ const MODULES = {
       { name: 'item', label: 'Equipment / item', type: 'text', required: true },
       { name: 'clientName', label: 'Client name', type: 'text' },
       { name: 'companyName', label: 'Company name', type: 'text' },
-      { name: 'location', label: 'Location / venue', type: 'text' },
+      { name: 'companyAddress', label: 'Company address (for invoice billing address)', type: 'text' },
+      { name: 'location', label: 'Location / venue (delivery address)', type: 'text' },
       { name: 'customerId', label: 'Linked customer record (optional)', type: 'select', source: 'customers', optLabel: 'name' },
       { name: 'startDate', label: 'Start date', type: 'date' },
       { name: 'endDate', label: 'End date', type: 'date' },
-      { name: 'amount', label: 'Amount (₹)', type: 'number' },
+      { name: 'amount', label: 'Amount (₹) — total for the whole booking', type: 'number' },
       { name: 'status', label: 'Status', type: 'select', options: ['pending','confirmed','completed','cancelled'] }
     ],
     onSave: (saved) => {
@@ -60,7 +62,8 @@ const MODULES = {
       } else {
         const created = Store.add('customers', {
           name: saved.clientName,
-          companyName: saved.companyName || ''
+          companyName: saved.companyName || '',
+          companyAddress: saved.companyAddress || ''
         });
         customerId = created.id;
         syncCollection('customer');
@@ -116,9 +119,10 @@ const MODULES = {
   },
   invoice: {
     title: 'Invoices', collection: 'invoices', icon: 'file-text',
+    searchFields: ['number', 'customerName', 'date'],
     columns: [
       { label: 'Number', field: 'number', cls: 'name-cell' },
-      { label: 'Type', field: 'docType', render: v => v || 'Invoice' },
+      { label: 'Type', field: 'docType', render: v => v === 'Tax Invoice' ? 'Invoice' : (v || 'Invoice') },
       { label: 'Date', field: 'date', render: fmtDate },
       { label: 'Amount', field: 'amount', render: v => fmt(v) },
       { label: 'Status', field: 'status', render: v => tagFor(v) },
