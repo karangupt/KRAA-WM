@@ -1,8 +1,21 @@
 /* Workspace App — Invoice Generator (printable invoice/quotation builder) */
 
 /* ---------- Invoice Generator ---------- */
+// Base (pre-GST) amount for one item — area-based (sq.ft × rate/sqft) if
+// both are filled in, otherwise the usual qty × days × rate.
+function invoiceItemBaseAmount(it) {
+  const sqft = Number(it.sqft) || 0;
+  const ratePerSqft = Number(it.ratePerSqft) || 0;
+  if (sqft > 0 && ratePerSqft > 0) return sqft * ratePerSqft;
+  return (Number(it.qty) || 0) * (Number(it.days) || 1) * (Number(it.rate) || 0);
+}
+
 function invoiceItemsTotal() {
-  return invoiceDraft.items.reduce((s, it) => s + (Number(it.qty) || 0) * (Number(it.days) || 1) * (Number(it.rate) || 0), 0);
+  return invoiceDraft.items.reduce((s, it) => s + invoiceItemBaseAmount(it), 0);
+}
+
+function invoiceItemsGstTotal() {
+  return invoiceDraft.items.reduce((s, it) => s + invoiceItemBaseAmount(it) * (Number(it.gstRate) || 0) / 100, 0);
 }
 
 function invoiceDiscountAmount() {
@@ -13,7 +26,7 @@ function invoiceDiscountAmount() {
 }
 
 function invoiceGrandTotal() {
-  return invoiceItemsTotal() - invoiceDiscountAmount();
+  return invoiceItemsTotal() + invoiceItemsGstTotal() - invoiceDiscountAmount();
 }
 
 function openInvoiceInGenerator(invoiceId) {
@@ -89,7 +102,7 @@ function renderInvoiceGen() {
         <div class="field"><label>Contact person name</label><input type="text" id="ig_contactPersonName" value="${invoiceDraft.contactPersonName}"></div>
         <div class="field"><label>Contact person number</label><input type="text" id="ig_contactPersonNumber" value="${invoiceDraft.contactPersonNumber}"></div>
         <div class="field"><label>PO / Reference number (optional)</label><input type="text" id="ig_poNumber" value="${invoiceDraft.poNumber}" placeholder="Customer's purchase order no."></div>
-        ${(invoiceDraft.docType === 'Quotation' || invoiceDraft.docType === 'Tax Invoice') ? `
+        ${invoiceDraft.docType === 'Quotation' ? `
         <div class="field"><label>Customer PAN</label><input type="text" id="ig_customerPAN" value="${invoiceDraft.customerPAN || ''}" placeholder="e.g. AANCR3989D"></div>
         <div class="field"><label>Place of Supply</label><input type="text" id="ig_placeOfSupply" value="${invoiceDraft.placeOfSupply || ''}" placeholder="e.g. Maharashtra (27)"></div>
         ` : ''}
@@ -123,18 +136,31 @@ function renderInvoiceGen() {
     <div class="card">
       <div class="section-head"><h2>3. Items</h2><button class="btn secondary" id="ig_addItem">+ Add item</button></div>
       <div class="table-wrap"><table class="ledger">
-        <thead><tr><th>Description</th><th style="width:70px;">Qty</th><th style="width:70px;">Days</th><th style="width:120px;">Rate</th>${(invoiceDraft.docType === 'Quotation' || invoiceDraft.docType === 'Tax Invoice') ? '<th style="width:90px;">GST %</th>' : ''}<th style="width:120px;">Amount</th><th></th></tr></thead>
+        <thead><tr><th>Description</th><th style="width:70px;">Qty</th><th style="width:70px;">Days</th><th style="width:120px;">Rate</th>${invoiceDraft.docType === 'Quotation' ? '<th style="width:90px;">GST %</th>' : ''}<th style="width:120px;">Amount</th><th></th></tr></thead>
         <tbody>
           ${invoiceDraft.items.map((it, i) => `<tr>
             <td><input type="text" data-item-field="desc" data-item-idx="${i}" value="${it.desc}" style="width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text); padding:6px 8px; border-radius:6px; font-size:13px;"></td>
             <td><input type="number" data-item-field="qty" data-item-idx="${i}" value="${it.qty}" style="width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text); padding:6px 8px; border-radius:6px; font-size:13px;"></td>
             <td><input type="number" data-item-field="days" data-item-idx="${i}" value="${it.days != null ? it.days : 1}" min="1" style="width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text); padding:6px 8px; border-radius:6px; font-size:13px;"></td>
             <td><input type="number" data-item-field="rate" data-item-idx="${i}" value="${it.rate}" style="width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text); padding:6px 8px; border-radius:6px; font-size:13px;"></td>
-            ${(invoiceDraft.docType === 'Quotation' || invoiceDraft.docType === 'Tax Invoice') ? `<td><input type="number" data-item-field="gstRate" data-item-idx="${i}" value="${it.gstRate != null ? it.gstRate : 18}" style="width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text); padding:6px 8px; border-radius:6px; font-size:13px;"></td>` : ''}
-            <td class="name-cell">${fmt((Number(it.qty)||0)*(Number(it.days)||1)*(Number(it.rate)||0))}</td>
+            ${invoiceDraft.docType === 'Quotation' ? `<td><input type="number" data-item-field="gstRate" data-item-idx="${i}" value="${it.gstRate != null ? it.gstRate : 18}" style="width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text); padding:6px 8px; border-radius:6px; font-size:13px;"></td>` : ''}
+            <td class="name-cell">${fmt(invoiceItemBaseAmount(it))}</td>
             <td><button data-remove-item="${i}" style="background:none; border:none; color:var(--danger); cursor:pointer; display:flex; align-items:center;"><i data-lucide="x" style="width:14px;height:14px;"></i></button></td>
           </tr>
-          ${(invoiceDraft.docType === 'Quotation' || invoiceDraft.docType === 'Tax Invoice') ? `<tr><td colspan="7" style="padding-top:0;">
+          <tr><td colspan="${invoiceDraft.docType === 'Quotation' ? 7 : 6}" style="padding-top:0; padding-bottom:12px;">
+            <details style="font-size:12px;">
+              <summary style="cursor:pointer; color:var(--muted);">+ Extra fields (Size, HSN/SAC, Unit, Sq.Ft pricing) — only filled-in ones show on the printed document</summary>
+              <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:8px; margin-top:8px;">
+                <div><label style="font-size:11px; color:var(--muted);">Size</label><input type="text" data-item-field="size" data-item-idx="${i}" value="${it.size || ''}" placeholder="e.g. 55 inch" style="width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text); padding:6px 8px; border-radius:6px; font-size:13px;"></div>
+                <div><label style="font-size:11px; color:var(--muted);">HSN/SAC</label><input type="text" data-item-field="hsnSac" data-item-idx="${i}" value="${it.hsnSac || ''}" placeholder="e.g. 8528" style="width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text); padding:6px 8px; border-radius:6px; font-size:13px;"></div>
+                <div><label style="font-size:11px; color:var(--muted);">Unit</label><input type="text" data-item-field="unit" data-item-idx="${i}" value="${it.unit || ''}" placeholder="e.g. Sq.Ft / Nos" style="width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text); padding:6px 8px; border-radius:6px; font-size:13px;"></div>
+                <div><label style="font-size:11px; color:var(--muted);">Total Sq.Ft</label><input type="number" data-item-field="sqft" data-item-idx="${i}" value="${it.sqft || ''}" style="width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text); padding:6px 8px; border-radius:6px; font-size:13px;"></div>
+                <div><label style="font-size:11px; color:var(--muted);">Rate / Sq.Ft (₹)</label><input type="number" data-item-field="ratePerSqft" data-item-idx="${i}" value="${it.ratePerSqft || ''}" style="width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text); padding:6px 8px; border-radius:6px; font-size:13px;"></div>
+              </div>
+              <p style="color:var(--muted); font-size:11px; margin-top:6px;">Fill Total Sq.Ft + Rate/Sq.Ft to price this item by area instead of Qty×Days×Rate.</p>
+            </details>
+          </td></tr>
+          ${invoiceDraft.docType === 'Quotation' ? `<tr><td colspan="7" style="padding-top:0;">
             <textarea data-item-field="longDesc" data-item-idx="${i}" rows="2" placeholder="Detailed product description for this item (optional)..." style="width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text); padding:6px 8px; border-radius:6px; font-size:12.5px; font-family:inherit;">${it.longDesc || ''}</textarea>
           </td></tr>` : ''}`).join('')}
         </tbody>
@@ -186,9 +212,10 @@ function renderInvoiceGen() {
 }
 
 function renderInvoicePrintable() {
-  if (invoiceDraft.docType === 'Quotation' || invoiceDraft.docType === 'Tax Invoice') return renderQuotationDocument();
+  if (invoiceDraft.docType === 'Quotation') return renderQuotationDocument();
 
-  const total = invoiceItemsTotal();
+  const total = invoiceItemsTotal(); // pre-tax subtotal (base amounts only)
+  const itemsGstTotal = invoiceItemsGstTotal();
   const discount = invoiceDiscountAmount();
   const grandTotal = invoiceGrandTotal();
   const deliveryAddr = invoiceDraft.sameAsCustomer ? invoiceDraft.customerAddress : invoiceDraft.deliveryAddress;
@@ -237,12 +264,50 @@ function renderInvoicePrintable() {
       <div><strong>${invoiceDraft.docType === 'Quotation' ? 'Site / Venue Address:' : 'Delivery Address:'}</strong><br>${(deliveryAddr||'').replace(/\n/g,'<br>')}</div>
     </div>
 
+    ${(() => {
+      const items = invoiceDraft.items;
+      const has = f => items.some(it => it[f] !== '' && it[f] != null && it[f] !== 0);
+      const showSize = has('size'), showHsn = has('hsnSac'), showUnit = has('unit'),
+            showSqft = has('sqft') && has('ratePerSqft'), showGst = has('gstRate');
+      const cols = [
+        { key: 'si', label: 'SI No' },
+        { key: 'desc', label: 'Description of Goods' },
+        ...(showSize ? [{ key: 'size', label: 'Size' }] : []),
+        ...(showHsn ? [{ key: 'hsnSac', label: 'HSN/SAC' }] : []),
+        { key: 'qty', label: 'Quantity' },
+        { key: 'days', label: 'Days' },
+        ...(showUnit ? [{ key: 'unit', label: 'Unit' }] : []),
+        ...(showSqft ? [{ key: 'sqft', label: 'Total Sq.Ft' }, { key: 'ratePerSqft', label: 'Rate/Sq.Ft' }] : []),
+        { key: 'rate', label: 'Rate' },
+        ...(showGst ? [{ key: 'taxable', label: 'Taxable Amount' }, { key: 'gst', label: 'GST' }] : []),
+        { key: 'amount', label: 'Amount' }
+      ];
+      const cellFor = (it, key) => {
+        const base = invoiceItemBaseAmount(it);
+        const gstAmt = base * (Number(it.gstRate) || 0) / 100;
+        switch (key) {
+          case 'si': return '';
+          case 'desc': return it.desc || '';
+          case 'size': return it.size || '';
+          case 'hsnSac': return it.hsnSac || '';
+          case 'qty': return it.qty;
+          case 'days': return it.days || 1;
+          case 'unit': return it.unit || '';
+          case 'sqft': return it.sqft || '';
+          case 'ratePerSqft': return it.ratePerSqft ? fmt(it.ratePerSqft) : '';
+          case 'rate': return it.rate ? fmt(it.rate) : '';
+          case 'taxable': return fmt(base);
+          case 'gst': return it.gstRate ? `${fmt(gstAmt)} (${it.gstRate}%)` : fmt(0);
+          case 'amount': return fmt(base + gstAmt);
+        }
+      };
+      return `
     <table class="invoice-items">
-      <thead><tr><th>SI No</th><th>Description of Goods</th><th>Quantity</th><th>Days</th><th>Rate</th><th>Amount</th></tr></thead>
+      <thead><tr>${cols.map(c => `<th>${c.label}</th>`).join('')}</tr></thead>
       <tbody>
-        ${invoiceDraft.items.map((it, i) => `<tr><td>${i+1}</td><td>${it.desc}</td><td>${it.qty}</td><td>${it.days || 1}</td><td>${it.rate ? fmt(it.rate) : ''}</td><td>${fmt((Number(it.qty)||0)*(Number(it.days)||1)*(Number(it.rate)||0))}</td></tr>`).join('')}
-        ${Array.from({length: Math.max(0, 6 - invoiceDraft.items.length)}).map(() => `<tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td></tr>`).join('')}
-        ${invoiceDraft.paid && invoiceDraft.docType !== 'Quotation' ? `<tr><td colspan="6" style="padding-top:16px;">
+        ${items.map((it, i) => `<tr>${cols.map(c => `<td>${c.key === 'si' ? i + 1 : cellFor(it, c.key)}</td>`).join('')}</tr>`).join('')}
+        ${Array.from({length: Math.max(0, 6 - items.length)}).map(() => `<tr>${cols.map(() => '<td>&nbsp;</td>').join('')}</tr>`).join('')}
+        ${invoiceDraft.paid && invoiceDraft.docType !== 'Quotation' ? `<tr><td colspan="${cols.length}" style="padding-top:16px;">
           <strong>Payment Confirmation</strong><br>
           This is to confirm that payment against the below invoice has been successfully received.<br><br>
           <em>Invoice No.: ${invoiceDraft.invoiceNo}<br>
@@ -254,11 +319,13 @@ function renderInvoicePrintable() {
         </td></tr>` : ''}
       </tbody>
       <tfoot>
-        ${discount > 0 ? `<tr><td colspan="5" style="text-align:right;">Subtotal</td><td>${fmt(total)}</td></tr>
-        <tr><td colspan="5" style="text-align:right;">Discount</td><td>−${fmt(discount)}</td></tr>` : ''}
-        <tr><td colspan="5" style="text-align:right;"><strong>Total</strong></td><td><strong>${fmt(grandTotal)}</strong></td></tr>
+        ${(itemsGstTotal > 0 || discount > 0) ? `<tr><td colspan="${cols.length - 1}" style="text-align:right;">Subtotal</td><td>${fmt(total)}</td></tr>` : ''}
+        ${itemsGstTotal > 0 ? `<tr><td colspan="${cols.length - 1}" style="text-align:right;">GST Total</td><td>${fmt(itemsGstTotal)}</td></tr>` : ''}
+        ${discount > 0 ? `<tr><td colspan="${cols.length - 1}" style="text-align:right;">Discount</td><td>−${fmt(discount)}</td></tr>` : ''}
+        <tr><td colspan="${cols.length - 1}" style="text-align:right;"><strong>Total</strong></td><td><strong>${fmt(grandTotal)}</strong></td></tr>
       </tfoot>
-    </table>
+    </table>`;
+    })()}
 
     <div class="invoice-words-row">
       <div>Amount Chargeable (in words)<br><strong>Indian Rupees: ${numToWordsIndian(grandTotal)} Only</strong></div>
@@ -508,13 +575,13 @@ function wireInvoiceGen() {
     input.addEventListener('input', () => {
       const idx = Number(input.dataset.itemIdx);
       const field = input.dataset.itemField;
-      invoiceDraft.items[idx][field] = (field === 'desc' || field === 'longDesc') ? input.value : Number(input.value);
+      invoiceDraft.items[idx][field] = (field === 'desc' || field === 'longDesc' || field === 'size' || field === 'hsnSac' || field === 'unit') ? input.value : Number(input.value);
       wireInvoiceGenRefresh();
     });
   });
 
   root.querySelector('#ig_addItem')?.addEventListener('click', () => {
-    invoiceDraft.items.push({ desc: '', qty: 1, days: 1, rate: 0, gstRate: 18, longDesc: '' });
+    invoiceDraft.items.push({ desc: '', qty: 1, days: 1, rate: 0, gstRate: 0, longDesc: '', size: '', hsnSac: '', unit: '', sqft: '', ratePerSqft: '' });
     render();
   });
 
