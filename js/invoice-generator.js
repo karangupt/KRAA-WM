@@ -84,28 +84,31 @@ function generateInvoiceFromBooking(bookingId) {
     const ms = new Date(booking.endDate) - new Date(booking.startDate);
     if (ms >= 0) days = Math.round(ms / 86400000) + 1;
   }
+  // booking.amount is the TOTAL for the whole booking — divide by days to
+  // get the per-day rate, since the invoice multiplies qty × days × rate.
+  const perDayRate = days > 0 ? Number(booking.amount || 0) / days : Number(booking.amount || 0);
 
   invoiceDraft = {
     docType: 'Tax Invoice',
     invoiceNo: generateNextInvoiceNo(),
     date: todayStr(),
     deliveryDate: booking.endDate || booking.startDate || '',
-    duration: '1 Day Only (Four hours only)',
+    duration: days === 1 ? '1 Day Only (Four hours only)' : `${days} Days`,
     customerName: (customer && customer.name) || booking.clientName || '',
-    customerAddress: (customer && customer.companyName) || booking.companyName || '',
+    customerAddress: (customer && customer.companyAddress) || booking.companyAddress || (customer && customer.companyName) || booking.companyName || '',
     customerGST: customer ? (customer.gst || '') : '',
     customerPAN: '',
     customerEmail: customer ? (customer.email || '') : '',
     contactPersonName: '',
     contactPersonNumber: customer ? (customer.phone || '') : '',
     poNumber: '',
-    deliveryAddress: '',
+    deliveryAddress: booking.location || '',
+    sameAsCustomer: !booking.location,
     placeOfSupply: 'Maharashtra (27)',
     quotationCategory: 'Rental',
     rentalSubType: 'Projector',
-    sameAsCustomer: true,
     items: [{
-      desc: booking.item || 'Rental charges', qty: 1, days, rate: Number(booking.amount || 0),
+      desc: booking.item || 'Rental charges', qty: 1, days, rate: perDayRate,
       gstRate: 0, longDesc: '', size: '', hsnSac: '', unit: '', sqft: '', ratePerSqft: ''
     }],
     discountType: 'amount',
@@ -623,6 +626,14 @@ function wireInvoiceGen() {
       const idx = Number(input.dataset.itemIdx);
       const field = input.dataset.itemField;
       invoiceDraft.items[idx][field] = (field === 'desc' || field === 'longDesc' || field === 'size' || field === 'hsnSac' || field === 'unit') ? input.value : Number(input.value);
+      if (field === 'days') {
+        // Keep the Duration text in sync automatically — no more manually
+        // typing "3 Days" separately from the Days column.
+        const maxDays = Math.max(1, ...invoiceDraft.items.map(it => Number(it.days) || 1));
+        invoiceDraft.duration = maxDays === 1 ? '1 Day Only (Four hours only)' : `${maxDays} Days`;
+        const durationInput = root.querySelector('#ig_duration');
+        if (durationInput) durationInput.value = invoiceDraft.duration;
+      }
       wireInvoiceGenRefresh();
     });
   });
