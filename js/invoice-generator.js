@@ -71,6 +71,53 @@ function openInvoiceInGenerator(invoiceId) {
   navigateTo('invoiceGen');
 }
 
+// "🧾 Generate Invoice" button on a completed Booking row — pre-fills the
+// Invoice Generator with that booking's details so it just needs a review
+// and Save, instead of retyping everything from scratch.
+function generateInvoiceFromBooking(bookingId) {
+  const booking = Store.get('bookings', bookingId);
+  if (!booking) return;
+  const customer = booking.customerId ? Store.get('customers', booking.customerId) : null;
+
+  let days = 1;
+  if (booking.startDate && booking.endDate) {
+    const ms = new Date(booking.endDate) - new Date(booking.startDate);
+    if (ms >= 0) days = Math.round(ms / 86400000) + 1;
+  }
+
+  invoiceDraft = {
+    docType: 'Tax Invoice',
+    invoiceNo: generateNextInvoiceNo(),
+    date: todayStr(),
+    deliveryDate: booking.endDate || booking.startDate || '',
+    duration: '1 Day Only (Four hours only)',
+    customerName: (customer && customer.name) || booking.clientName || '',
+    customerAddress: (customer && customer.companyName) || booking.companyName || '',
+    customerGST: customer ? (customer.gst || '') : '',
+    customerPAN: '',
+    customerEmail: customer ? (customer.email || '') : '',
+    contactPersonName: '',
+    contactPersonNumber: customer ? (customer.phone || '') : '',
+    poNumber: '',
+    deliveryAddress: '',
+    placeOfSupply: 'Maharashtra (27)',
+    quotationCategory: 'Rental',
+    rentalSubType: 'Projector',
+    sameAsCustomer: true,
+    items: [{
+      desc: booking.item || 'Rental charges', qty: 1, days, rate: Number(booking.amount || 0),
+      gstRate: 0, longDesc: '', size: '', hsnSac: '', unit: '', sqft: '', ratePerSqft: ''
+    }],
+    discountType: 'amount',
+    discountValue: 0,
+    paid: false,
+    paymentMode: 'Cash',
+    txnId: '',
+    paymentDate: ''
+  };
+  navigateTo('invoiceGen');
+}
+
 function renderInvoiceGen() {
   const total = invoiceItemsTotal();
   return `
