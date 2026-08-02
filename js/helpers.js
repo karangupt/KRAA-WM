@@ -163,7 +163,7 @@ function generateNextInvoiceNo() {
   const mm = String(now.getMonth() + 1).padStart(2, '0');
   const prefix = `PS${yyyy}${mm}`;
   const existing = Store.all('invoices')
-    .map(inv => inv.invoiceNo)
+    .map(inv => inv.number)
     .filter(no => typeof no === 'string' && no.startsWith(prefix));
   let maxSeq = 0;
   existing.forEach(no => {
