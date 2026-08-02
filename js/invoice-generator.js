@@ -74,7 +74,16 @@ function openInvoiceInGenerator(invoiceId) {
 // "🧾 Generate Invoice" button on a completed Booking row — pre-fills the
 // Invoice Generator with that booking's details so it just needs a review
 // and Save, instead of retyping everything from scratch.
+// If this booking already has a generated invoice (tracked via bookingId
+// on the invoice record), that EXISTING invoice is opened for editing
+// instead of creating a fresh duplicate with a new number/date.
 function generateInvoiceFromBooking(bookingId) {
+  const alreadyGenerated = Store.all('invoices').find(inv => inv.bookingId === bookingId);
+  if (alreadyGenerated) {
+    openInvoiceInGenerator(alreadyGenerated.id);
+    return;
+  }
+
   const booking = Store.get('bookings', bookingId);
   if (!booking) return;
   const customer = booking.customerId ? Store.get('customers', booking.customerId) : null;
@@ -92,6 +101,7 @@ function generateInvoiceFromBooking(bookingId) {
     docType: 'Tax Invoice',
     invoiceNo: generateNextInvoiceNo(),
     date: todayStr(),
+    sourceBookingId: bookingId,
     deliveryDate: booking.endDate || booking.startDate || '',
     duration: days === 1 ? '1 Day Only (Four hours only)' : `${days} Days`,
     customerName: (customer && customer.name) || booking.clientName || '',
@@ -271,7 +281,7 @@ function renderInvoicePrintable() {
   const deliveryAddr = invoiceDraft.sameAsCustomer ? invoiceDraft.customerAddress : invoiceDraft.deliveryAddress;
   const title = invoiceDraft.docType === 'Quotation' ? 'QUOTATION'
     : invoiceDraft.docType === 'Provisional Invoice' ? 'PROVISIONAL INVOICE – CUM – DELIVERY CHALLAN'
-    : 'INVOICE – CUM – DELIVERY CHALLAN';
+    : 'INVOICE';
 
   // UPI payment QR — scanning it opens the customer's UPI app (GPay/PhonePe/
   // etc.) with the payee, amount, and invoice number already filled in.
@@ -294,6 +304,7 @@ function renderInvoicePrintable() {
         <div>GSTIN: ${COMPANY_INFO.gstNote}</div>
       </div>
       <div class="invoice-meta">
+        <img src="${LOGO_IMG}" alt="Projector Solutions" style="width:90px; display:block; margin-bottom:8px; margin-left:auto;">
         <table>
           <tr><td>Invoice No:</td><td>${invoiceDraft.invoiceNo || '—'}</td></tr>
           <tr><td>Dated:</td><td>${fmtDate(invoiceDraft.date)}</td></tr>
@@ -387,7 +398,7 @@ function renderInvoicePrintable() {
       <strong>Terms &amp; Conditions:</strong>
       <ol>${RENTAL_TERMS[invoiceDraft.rentalSubType || 'Projector'].map(t => `<li>${t}</li>`).join('')}</ol>
       ` : ''}
-      <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:12px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
         <div>
           <strong>Mode of Payment: Only Digital Payments Accepted (Bank Transfer / UPI / NEFT / RTGS). Cash Payment Not Accepted.</strong><br>
           GPay: UPI ID: ${COMPANY_INFO.upiId}<br>
@@ -672,6 +683,7 @@ function wireInvoiceGen() {
       status: invoiceDraft.paid ? 'paid' : 'unpaid',
       customerName: invoiceDraft.customerName,
       docType: invoiceDraft.docType,
+      bookingId: invoiceDraft.sourceBookingId || null,
       fullDataJson: JSON.stringify(invoiceDraft)
     };
     if (existing) {
