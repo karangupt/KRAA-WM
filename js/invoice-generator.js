@@ -659,13 +659,14 @@ function wireInvoiceGen() {
       return;
     }
     const total = invoiceGrandTotal();
-    const existing = Store.all('invoices').find(inv => inv.number === invoiceDraft.invoiceNo);
+    const cleanInvoiceNo = invoiceDraft.invoiceNo.trim();
+    const existing = Store.all('invoices').find(inv => (inv.number || '').trim() === cleanInvoiceNo);
     // Store both the flat summary fields (used by Dashboard/Reports revenue
     // calculations) AND the full snapshot as JSON, so this exact invoice can
     // be reopened, edited, reprinted, or resent to the customer anytime —
     // nothing is lost after you close this page.
     const record = {
-      number: invoiceDraft.invoiceNo,
+      number: cleanInvoiceNo,
       date: invoiceDraft.date,
       amount: total,
       status: invoiceDraft.paid ? 'paid' : 'unpaid',
@@ -678,7 +679,7 @@ function wireInvoiceGen() {
     } else {
       Store.add('invoices', record);
     }
-    const savedId = existing ? existing.id : Store.all('invoices').find(inv => inv.number === invoiceDraft.invoiceNo).id;
+    const savedId = existing ? existing.id : Store.all('invoices').find(inv => (inv.number || '').trim() === cleanInvoiceNo).id;
 
     // Auto-create a matching Payments entry the moment an invoice is marked
     // paid — so it shows up in Payments without a separate manual entry.
