@@ -185,10 +185,10 @@ table.ledger tbody tr:hover{background:rgba(232,163,61,.04);}
 
 /* ---------- Login gate ---------- */
 .login-screen{
-  min-height:100vh; display:flex; align-items:center; justify-content:center;
+  min-height:100vh; width:100%; display:flex; align-items:center; justify-content:center;
   padding:20px; position:relative; overflow:hidden;
-  /* Placeholder gradient background — swap for a real photo by changing
-     just this background-image line (keep the same size/position/overlay). */
+  /* Placeholder gradient background — overridden at runtime (see boot.js
+     initLogin) with the real uploaded photo once LOGIN_BG_IMG is set. */
   background-image:
     linear-gradient(rgba(15,20,23,.72), rgba(15,20,23,.72)),
     radial-gradient(circle at 20% 20%, #2a2f2b 0%, transparent 55%),
@@ -196,6 +196,8 @@ table.ledger tbody tr:hover{background:rgba(232,163,61,.04);}
     linear-gradient(135deg, #14181a 0%, #0f1417 100%);
   background-size: cover;
   background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
 }
 .login-card{
   width:100%; max-width:360px; background:rgba(26,32,29,.55); border:1px solid rgba(255,255,255,.08);
