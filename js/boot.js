@@ -120,7 +120,7 @@ async function pullFromSupabaseIntoStore() {
 
 function initLogin() {
   const logoEl = document.getElementById('loginLogo');
-  if (logoEl && typeof LOGO_IMG !== 'undefined') logoEl.src = LOGO_IMG;
+  if (logoEl && typeof LOGO_IMG_WHITE !== 'undefined') logoEl.src = LOGO_IMG_WHITE;
   const loginScreen = document.getElementById('loginScreen');
   if (loginScreen && typeof LOGIN_BG_IMG !== 'undefined') {
     loginScreen.style.backgroundImage =
