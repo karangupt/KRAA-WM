@@ -2,7 +2,7 @@
 
 /* ---------- Invoice Generator ---------- */
 // Base (pre-GST) amount for one item — area-based (sq.ft × rate/sqft) if
-// both are filled in, otherwise the usual qty × days × rate.
+// both are filled in, otherwise Qty × Days × Rate.
 function invoiceItemBaseAmount(it) {
   const sqft = Number(it.sqft) || 0;
   const ratePerSqft = Number(it.ratePerSqft) || 0;
@@ -178,6 +178,8 @@ function renderInvoiceGen() {
           <select id="ig_rentalSubType">
             <option value="Projector" ${invoiceDraft.rentalSubType === 'Projector' ? 'selected' : ''}>Projector Rental</option>
             <option value="LEDScreen" ${invoiceDraft.rentalSubType === 'LEDScreen' ? 'selected' : ''}>LED Screen Rental</option>
+            <option value="TV" ${invoiceDraft.rentalSubType === 'TV' ? 'selected' : ''}>TV Rental</option>
+            <option value="Sound" ${invoiceDraft.rentalSubType === 'Sound' ? 'selected' : ''}>Sound Rental</option>
           </select>
         </div>
         ` : ''}
@@ -443,7 +445,7 @@ function renderQuotationDocument() {
     const days = Number(it.days) || 1;
     const rate = Number(it.rate) || 0;
     const gstRate = it.gstRate != null ? Number(it.gstRate) : 18;
-    const amount = qty * days * rate;
+    const amount = invoiceItemBaseAmount(it);
     const cgst = amount * gstRate / 200;
     const sgst = amount * gstRate / 200;
     const rowTotal = amount + cgst + sgst;
