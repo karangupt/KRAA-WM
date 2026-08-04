@@ -64,7 +64,9 @@ const PROJECTOR_RENTAL_TERMS = [
 const LEDSCREEN_RENTAL_TERMS = PROJECTOR_RENTAL_TERMS.filter(t => !t.startsWith('Rental charges are applicable for a maximum usage period'));
 const RENTAL_TERMS = {
   Projector: PROJECTOR_RENTAL_TERMS,
-  LEDScreen: LEDSCREEN_RENTAL_TERMS
+  LEDScreen: LEDSCREEN_RENTAL_TERMS,
+  TV: LEDSCREEN_RENTAL_TERMS,
+  Sound: LEDSCREEN_RENTAL_TERMS
 };
 
 function numToWordsIndian(num) {
