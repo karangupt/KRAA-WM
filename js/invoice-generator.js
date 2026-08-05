@@ -197,11 +197,24 @@ function renderInvoiceGen() {
 
     <div class="card">
       <div class="section-head"><h2>3. Items</h2><button class="btn secondary" id="ig_addItem">+ Add item</button></div>
+      <datalist id="itemDescPresets">
+        <option value="Transportation and Installation">
+        <option value="Projector">
+        <option value="LED Screen">
+        <option value="55&quot; TV with Stand">
+        <option value="65&quot; TV with Stand">
+        <option value="Speaker + 1 Cordless Mic">
+        <option value="Sound System">
+        <option value="Screen (8x6 ft)">
+        <option value="Screen (10x8 ft)">
+        <option value="Laptop">
+        <option value="Extension Cable / Power Backup">
+      </datalist>
       <div class="table-wrap"><table class="ledger">
         <thead><tr><th>Description</th><th style="width:70px;">Qty</th><th style="width:70px;">Days</th><th style="width:120px;">Rate</th>${invoiceDraft.docType === 'Quotation' ? '<th style="width:90px;">GST %</th>' : ''}<th style="width:120px;">Amount</th><th></th></tr></thead>
         <tbody>
           ${invoiceDraft.items.map((it, i) => `<tr>
-            <td><input type="text" data-item-field="desc" data-item-idx="${i}" value="${it.desc}" style="width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text); padding:6px 8px; border-radius:6px; font-size:13px;"></td>
+            <td><input type="text" list="itemDescPresets" data-item-field="desc" data-item-idx="${i}" value="${it.desc}" style="width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text); padding:6px 8px; border-radius:6px; font-size:13px;"></td>
             <td><input type="number" data-item-field="qty" data-item-idx="${i}" value="${it.qty}" style="width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text); padding:6px 8px; border-radius:6px; font-size:13px;"></td>
             <td><input type="number" data-item-field="days" data-item-idx="${i}" value="${it.days != null ? it.days : 1}" min="1" style="width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text); padding:6px 8px; border-radius:6px; font-size:13px;"></td>
             <td><input type="number" data-item-field="rate" data-item-idx="${i}" value="${it.rate}" style="width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text); padding:6px 8px; border-radius:6px; font-size:13px;"></td>
