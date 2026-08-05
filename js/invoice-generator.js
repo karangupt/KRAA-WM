@@ -295,7 +295,7 @@ function renderInvoicePrintable() {
   const grandTotal = invoiceGrandTotal();
   const deliveryAddr = invoiceDraft.sameAsCustomer ? invoiceDraft.customerAddress : invoiceDraft.deliveryAddress;
   const title = invoiceDraft.docType === 'Quotation' ? 'QUOTATION'
-    : invoiceDraft.docType === 'Provisional Invoice' ? 'PROVISIONAL INVOICE – CUM – DELIVERY CHALLAN'
+    : invoiceDraft.docType === 'Provisional Invoice' ? 'PROVISIONAL INVOICE'
     : 'INVOICE';
 
   // UPI payment QR — scanning it opens the customer's UPI app (GPay/PhonePe/
