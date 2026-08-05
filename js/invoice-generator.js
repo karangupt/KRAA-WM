@@ -50,7 +50,7 @@ function openInvoiceInGenerator(invoiceId) {
       invoiceNo: rec.number || '',
       date: rec.date || todayStr(),
       deliveryDate: '',
-      duration: '1 Day Only (Four hours only)',
+      duration: '1 Day',
       customerName: rec.customerName || (customer ? customer.name : ''),
       customerAddress: customer ? (customer.companyName || '') : '',
       deliveryAddress: '',
