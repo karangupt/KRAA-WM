@@ -103,7 +103,7 @@ function generateInvoiceFromBooking(bookingId) {
     date: todayStr(),
     sourceBookingId: bookingId,
     deliveryDate: booking.endDate || booking.startDate || '',
-    duration: days === 1 ? '1 Day Only (Four hours only)' : `${days} Days`,
+    duration: days === 1 ? '1 Day' : `${days} Days`,
     customerName: (customer && customer.name) || booking.clientName || '',
     customerAddress: (customer && customer.companyAddress) || booking.companyAddress || (customer && customer.companyName) || booking.companyName || '',
     customerGST: customer ? (customer.gst || '') : '',
@@ -656,7 +656,7 @@ function wireInvoiceGen() {
         // Keep the Duration text in sync automatically — no more manually
         // typing "3 Days" separately from the Days column.
         const maxDays = Math.max(1, ...invoiceDraft.items.map(it => Number(it.days) || 1));
-        invoiceDraft.duration = maxDays === 1 ? '1 Day Only (Four hours only)' : `${maxDays} Days`;
+        invoiceDraft.duration = maxDays === 1 ? '1 Day' : `${maxDays} Days`;
         const durationInput = root.querySelector('#ig_duration');
         if (durationInput) durationInput.value = invoiceDraft.duration;
       }
