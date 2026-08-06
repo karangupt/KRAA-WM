@@ -74,6 +74,40 @@ async function refreshStockPrices() {
 }
 
 /* ---------- Reports ---------- */
+let reportsSelectedCategory = ''; // persists across re-renders while on the Reports page
+
+function renderCategoryMonthlyBreakdown(expenses, yearKey) {
+  const categories = [...new Set(expenses.map(e => e.category || 'Uncategorised'))].sort();
+  if (!reportsSelectedCategory || !categories.includes(reportsSelectedCategory)) {
+    reportsSelectedCategory = categories[0] || '';
+  }
+  const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const monthlyTotals = monthNames.map((_, i) => {
+    const mk = `${yearKey}-${String(i + 1).padStart(2, '0')}`;
+    return expenses
+      .filter(e => (e.category || 'Uncategorised') === reportsSelectedCategory && (e.date || '').startsWith(mk))
+      .reduce((s, e) => s + Number(e.amount || 0), 0);
+  });
+  const yearTotal = monthlyTotals.reduce((s, a) => s + a, 0);
+
+  return `
+  <div class="card">
+    <div class="section-head">
+      <h2>Category-wise monthly breakdown — ${yearKey}</h2>
+      <select id="reportsCategorySelect" style="width:auto;">
+        ${categories.length ? categories.map(c => `<option value="${c}" ${c === reportsSelectedCategory ? 'selected' : ''}>${c}</option>`).join('') : '<option>No expenses yet</option>'}
+      </select>
+    </div>
+    ${categories.length ? `
+    <div class="table-wrap"><table class="ledger">
+      <thead><tr>${monthNames.map(m => `<th>${m}</th>`).join('')}<th>Total</th></tr></thead>
+      <tbody><tr>${monthlyTotals.map(a => `<td>${a > 0 ? fmt(a) : '—'}</td>`).join('')}<td><strong>${fmt(yearTotal)}</strong></td></tr></tbody>
+    </table></div>
+    <p style="color:var(--muted); font-size:12px; margin-top:10px;">Select a different category above to see its month-by-month spend for ${yearKey}.</p>
+    ` : `<div class="empty-state"><div class="glyph"><i data-lucide="receipt"></i></div>No expenses logged yet.</div>`}
+  </div>`;
+}
+
 function renderReports() {
   const invoices = Store.all('invoices');
   const payments = Store.all('payments');
@@ -146,6 +180,8 @@ function renderReports() {
       <tfoot><tr><td><strong>Total</strong></td><td><strong>${fmt(catRowsYear.reduce((s, [, a]) => s + a, 0))}</strong></td></tr></tfoot>
     </table></div>` : `<div class="empty-state"><div class="glyph"><i data-lucide="receipt"></i></div>No expenses logged this year yet.</div>`}
   </div>
+
+  ${renderCategoryMonthlyBreakdown(expenses, thisYearKey)}
 
   <div class="card">
     <div class="section-head"><h2>Expenses by category — All Time</h2></div>
@@ -231,4 +267,12 @@ function renderNetWorth() {
     </table></div>
     <p style="color:var(--muted); font-size:12px; margin-top:12px;">Pulled live from Bank Accounts, FD/RD, Investments and Assets &amp; Liabilities — update those modules and this updates automatically.${excludedBankTotal > 0 ? ` Excludes ${fmt(excludedBankTotal)} in Sukanya/Minor/Spouse accounts — that money isn't counted as your personal net worth.` : ''}</p>
   </div>`;
+}
+
+function wireReports() {
+  const root = $('#viewRoot');
+  root.querySelector('#reportsCategorySelect')?.addEventListener('change', (e) => {
+    reportsSelectedCategory = e.target.value;
+    render();
+  });
 }
