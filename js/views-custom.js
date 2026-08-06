@@ -6,7 +6,7 @@ const PLACEHOLDER_VIEWS = {
 };
 
 const CUSTOM_VIEWS = {
-  reports:         { title: 'Reports',              render: renderReports,  wire: null },
+  reports:         { title: 'Reports',              render: renderReports,  wire: wireReports },
   networth:        { title: 'Net Worth Dashboard',  render: renderNetWorth, wire: wireDashboard },
   invoiceGen:      { title: 'Generate Invoice',     render: renderInvoiceGen, wire: wireInvoiceGen },
   bookingPayments: { title: 'Bookings',             render: renderBookingPayments, wire: wireBookingPayments },
@@ -34,4 +34,3 @@ function tagFor(status) {
             : 'pending';
   return `<span class="tag ${cls}">${status || '—'}</span>`;
 }
-
