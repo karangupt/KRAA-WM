@@ -50,7 +50,7 @@ function openInvoiceInGenerator(invoiceId) {
       invoiceNo: rec.number || '',
       date: rec.date || todayStr(),
       deliveryDate: '',
-      duration: '1 Day',
+      duration: '1 Day Only (Four hours only)',
       customerName: rec.customerName || (customer ? customer.name : ''),
       customerAddress: customer ? (customer.companyName || '') : '',
       deliveryAddress: '',
@@ -103,7 +103,7 @@ function generateInvoiceFromBooking(bookingId) {
     date: todayStr(),
     sourceBookingId: bookingId,
     deliveryDate: booking.endDate || booking.startDate || '',
-    duration: days === 1 ? '1 Day' : `${days} Days`,
+    duration: days === 1 ? '1 Day Only (Four hours only)' : `${days} Days`,
     customerName: (customer && customer.name) || booking.clientName || '',
     customerAddress: (customer && customer.companyAddress) || booking.companyAddress || (customer && customer.companyName) || booking.companyName || '',
     customerGST: customer ? (customer.gst || '') : '',
@@ -119,7 +119,7 @@ function generateInvoiceFromBooking(bookingId) {
     rentalSubType: 'Projector',
     items: [{
       desc: booking.item || 'Rental charges', qty: 1, days, rate: perDayRate,
-      gstRate: 0, longDesc: '', size: '', hsnSac: '', unit: '', sqft: '', ratePerSqft: ''
+      gstRate: 0, longDesc: '', size: '', hsnSac: '', unit: '', sqft: '', ratePerSqft: '', vendorId: '', vendorCost: ''
     }],
     discountType: 'amount',
     discountValue: 0,
@@ -219,12 +219,12 @@ function renderInvoiceGen() {
             <td><input type="number" data-item-field="days" data-item-idx="${i}" value="${it.days != null ? it.days : 1}" min="1" style="width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text); padding:6px 8px; border-radius:6px; font-size:13px;"></td>
             <td><input type="number" data-item-field="rate" data-item-idx="${i}" value="${it.rate}" style="width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text); padding:6px 8px; border-radius:6px; font-size:13px;"></td>
             ${invoiceDraft.docType === 'Quotation' ? `<td><input type="number" data-item-field="gstRate" data-item-idx="${i}" value="${it.gstRate != null ? it.gstRate : 18}" style="width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text); padding:6px 8px; border-radius:6px; font-size:13px;"></td>` : ''}
-            <td class="name-cell">${fmt(invoiceItemBaseAmount(it))}</td>
+            <td class="name-cell" data-item-amount="${i}">${fmt(invoiceItemBaseAmount(it))}</td>
             <td><button data-remove-item="${i}" style="background:none; border:none; color:var(--danger); cursor:pointer; display:flex; align-items:center;"><i data-lucide="x" style="width:14px;height:14px;"></i></button></td>
           </tr>
           <tr><td colspan="${invoiceDraft.docType === 'Quotation' ? 7 : 6}" style="padding-top:0; padding-bottom:12px;">
             <details style="font-size:12px;">
-              <summary style="cursor:pointer; color:var(--muted);">+ Extra fields (Size, HSN/SAC, Unit, Sq.Ft pricing) — only filled-in ones show on the printed document</summary>
+              <summary style="cursor:pointer; color:var(--muted);">+ Extra fields (Size, HSN/SAC, Unit, Sq.Ft pricing, Outsourced vendor) — only filled-in ones show on the printed document</summary>
               <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:8px; margin-top:8px;">
                 <div><label style="font-size:11px; color:var(--muted);">Size</label><input type="text" data-item-field="size" data-item-idx="${i}" value="${it.size || ''}" placeholder="e.g. 55 inch" style="width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text); padding:6px 8px; border-radius:6px; font-size:13px;"></div>
                 <div><label style="font-size:11px; color:var(--muted);">HSN/SAC</label><input type="text" data-item-field="hsnSac" data-item-idx="${i}" value="${it.hsnSac || ''}" placeholder="e.g. 8528" style="width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text); padding:6px 8px; border-radius:6px; font-size:13px;"></div>
@@ -232,7 +232,17 @@ function renderInvoiceGen() {
                 <div><label style="font-size:11px; color:var(--muted);">Total Sq.Ft</label><input type="number" data-item-field="sqft" data-item-idx="${i}" value="${it.sqft || ''}" style="width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text); padding:6px 8px; border-radius:6px; font-size:13px;"></div>
                 <div><label style="font-size:11px; color:var(--muted);">Rate / Sq.Ft (₹)</label><input type="number" data-item-field="ratePerSqft" data-item-idx="${i}" value="${it.ratePerSqft || ''}" style="width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text); padding:6px 8px; border-radius:6px; font-size:13px;"></div>
               </div>
-              <p style="color:var(--muted); font-size:11px; margin-top:6px;">Fill Total Sq.Ft + Rate/Sq.Ft to price this item by area instead of Qty×Days×Rate.</p>
+              <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:8px; margin-top:8px; border-top:1px dashed var(--line); padding-top:8px;">
+                <div>
+                  <label style="font-size:11px; color:var(--muted);">Outsourced to vendor (never shown to customer)</label>
+                  <select data-item-field="vendorId" data-item-idx="${i}" style="width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text); padding:6px 8px; border-radius:6px; font-size:13px;">
+                    <option value="">— Not outsourced —</option>
+                    ${Store.all('vendors').map(v => `<option value="${v.id}" ${it.vendorId === v.id ? 'selected' : ''}>${v.name}</option>`).join('')}
+                  </select>
+                </div>
+                <div><label style="font-size:11px; color:var(--muted);">What you pay that vendor (₹)</label><input type="number" data-item-field="vendorCost" data-item-idx="${i}" value="${it.vendorCost || ''}" style="width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text); padding:6px 8px; border-radius:6px; font-size:13px;"></div>
+              </div>
+              <p style="color:var(--muted); font-size:11px; margin-top:6px;">Fill Total Sq.Ft + Rate/Sq.Ft to price this item by area instead of Qty×Days×Rate. If outsourced, saving this invoice auto-logs the vendor cost as a Corporate expense — your Reports profit reflects only your actual commission.</p>
             </details>
           </td></tr>
           ${invoiceDraft.docType === 'Quotation' ? `<tr><td colspan="7" style="padding-top:0;">
@@ -248,8 +258,17 @@ function renderInvoiceGen() {
         </select>
         <input type="number" id="ig_discountValue" value="${invoiceDraft.discountValue || 0}" min="0" style="width:100px;">
       </div>
+      ${invoiceDraft.docType === 'Provisional Invoice' ? `
+      <div style="display:flex; justify-content:flex-end; gap:10px; align-items:center; margin-top:10px;">
+        <label style="font-size:12.5px; color:var(--muted);">Advance Received (₹)</label>
+        <input type="number" id="ig_advanceAmount" value="${invoiceDraft.advanceAmount || 0}" min="0" style="width:120px;">
+      </div>
+      ` : ''}
       <p id="ig_subtotalLine" style="text-align:right; margin-top:6px; font-size:12.5px; color:var(--muted);">Subtotal: ${fmt(total)}${invoiceDiscountAmount() > 0 ? ` &nbsp;·&nbsp; Discount: −${fmt(invoiceDiscountAmount())}` : ''}</p>
       <p style="text-align:right; margin-top:2px; font-family:var(--font-mono); font-size:15px;">Total: <strong id="ig_totalAmount" style="color:var(--amber);">${fmt(invoiceGrandTotal())}</strong></p>
+      ${invoiceDraft.docType === 'Provisional Invoice' && Number(invoiceDraft.advanceAmount) > 0 ? `
+      <p id="ig_balanceLine" style="text-align:right; margin-top:2px; font-size:12.5px; color:var(--muted);">Advance: ${fmt(invoiceDraft.advanceAmount)} &nbsp;·&nbsp; Balance Due: <strong style="color:var(--text);">${fmt(invoiceGrandTotal() - Number(invoiceDraft.advanceAmount))}</strong></p>
+      ` : ''}
     </div>
 
     ${invoiceDraft.docType !== 'Quotation' ? `
@@ -295,7 +314,7 @@ function renderInvoicePrintable() {
   const grandTotal = invoiceGrandTotal();
   const deliveryAddr = invoiceDraft.sameAsCustomer ? invoiceDraft.customerAddress : invoiceDraft.deliveryAddress;
   const title = invoiceDraft.docType === 'Quotation' ? 'QUOTATION'
-    : invoiceDraft.docType === 'Provisional Invoice' ? 'PROVISIONAL INVOICE'
+    : invoiceDraft.docType === 'Provisional Invoice' ? 'PROVISIONAL INVOICE – CUM – DELIVERY CHALLAN'
     : 'INVOICE';
 
   // UPI payment QR — scanning it opens the customer's UPI app (GPay/PhonePe/
@@ -399,6 +418,10 @@ function renderInvoicePrintable() {
         ${itemsGstTotal > 0 ? `<tr><td colspan="${cols.length - 1}" style="text-align:right;">GST Total</td><td>${fmt(itemsGstTotal)}</td></tr>` : ''}
         ${discount > 0 ? `<tr><td colspan="${cols.length - 1}" style="text-align:right;">Discount</td><td>−${fmt(discount)}</td></tr>` : ''}
         <tr><td colspan="${cols.length - 1}" style="text-align:right;"><strong>Total</strong></td><td><strong>${fmt(grandTotal)}</strong></td></tr>
+        ${invoiceDraft.docType === 'Provisional Invoice' && Number(invoiceDraft.advanceAmount) > 0 ? `
+        <tr><td colspan="${cols.length - 1}" style="text-align:right;">Advance Received</td><td>−${fmt(invoiceDraft.advanceAmount)}</td></tr>
+        <tr><td colspan="${cols.length - 1}" style="text-align:right;"><strong>Balance Due</strong></td><td><strong>${fmt(grandTotal - Number(invoiceDraft.advanceAmount))}</strong></td></tr>
+        ` : ''}
       </tfoot>
     </table>`;
     })()}
@@ -616,6 +639,7 @@ function wireInvoiceGen() {
   bind('ig_placeOfSupply', 'placeOfSupply');
   bind('ig_discountType', 'discountType', 'change');
   bind('ig_discountValue', 'discountValue');
+  bind('ig_advanceAmount', 'advanceAmount');
 
   root.querySelector('#ig_quotationCategory')?.addEventListener('change', (e) => {
     invoiceDraft.quotationCategory = e.target.value;
@@ -651,14 +675,21 @@ function wireInvoiceGen() {
     input.addEventListener('input', () => {
       const idx = Number(input.dataset.itemIdx);
       const field = input.dataset.itemField;
-      invoiceDraft.items[idx][field] = (field === 'desc' || field === 'longDesc' || field === 'size' || field === 'hsnSac' || field === 'unit') ? input.value : Number(input.value);
+      invoiceDraft.items[idx][field] = (field === 'desc' || field === 'longDesc' || field === 'size' || field === 'hsnSac' || field === 'unit' || field === 'vendorId') ? input.value : Number(input.value);
       if (field === 'days') {
         // Keep the Duration text in sync automatically — no more manually
         // typing "3 Days" separately from the Days column.
         const maxDays = Math.max(1, ...invoiceDraft.items.map(it => Number(it.days) || 1));
-        invoiceDraft.duration = maxDays === 1 ? '1 Day' : `${maxDays} Days`;
+        invoiceDraft.duration = maxDays === 1 ? '1 Day Only (Four hours only)' : `${maxDays} Days`;
         const durationInput = root.querySelector('#ig_duration');
         if (durationInput) durationInput.value = invoiceDraft.duration;
+      }
+      // Live-update just this row's Amount cell (not the whole table), so
+      // typing Qty/Days/Rate/Sq.Ft shows the new amount immediately instead
+      // of only after Save.
+      if (['qty', 'days', 'rate', 'sqft', 'ratePerSqft'].includes(field)) {
+        const amountCell = root.querySelector(`[data-item-amount="${idx}"]`);
+        if (amountCell) amountCell.textContent = fmt(invoiceItemBaseAmount(invoiceDraft.items[idx]));
       }
       wireInvoiceGenRefresh();
     });
@@ -726,6 +757,35 @@ function wireInvoiceGen() {
     }
 
     syncCollection('invoice');
+
+    // Outsourced equipment: any item with a vendor + cost filled in gets
+    // logged as a Corporate expense automatically. Old auto-logged expenses
+    // for this invoice are cleared first so editing/re-saving doesn't pile
+    // up duplicates — Reports' profit then reflects your real commission
+    // (full invoice amount as revenue, vendor cost as an expense), while
+    // the customer's printed invoice never shows any of this.
+    Store.all('expenses')
+      .filter(e => e.sourceInvoiceId === savedId)
+      .forEach(e => Store.remove('expenses', e.id));
+    let vendorExpenseCount = 0;
+    invoiceDraft.items.forEach(it => {
+      const cost = Number(it.vendorCost) || 0;
+      if (it.vendorId && cost > 0) {
+        const vendor = Store.get('vendors', it.vendorId);
+        Store.add('expenses', {
+          date: invoiceDraft.date,
+          category: 'Vendor Outsourcing / Subcontracting',
+          expenseType: 'Corporate',
+          desc: `${it.desc || 'Item'} — outsourced to ${vendor ? vendor.name : 'vendor'} (Invoice ${cleanInvoiceNo})`,
+          paymentMode: 'Bank Transfer',
+          amount: cost,
+          sourceInvoiceId: savedId
+        });
+        vendorExpenseCount++;
+      }
+    });
+    if (vendorExpenseCount > 0) syncCollection('expense');
+
     status.style.color = 'var(--teal)';
     status.textContent = `Saved (${existing ? 'updated' : 'new'}). Find it anytime in "Quotation & Invoice" — click "Open" on that row to reprint or resend it.`;
   });
@@ -750,8 +810,12 @@ function wireInvoiceGen() {
 function wireInvoiceGenRefresh() {
   const subtotalEl = document.querySelector('#ig_subtotalLine');
   const totalEl = document.querySelector('#ig_totalAmount');
+  const balanceEl = document.querySelector('#ig_balanceLine');
   const subtotal = invoiceItemsTotal();
   const discount = invoiceDiscountAmount();
   if (subtotalEl) subtotalEl.innerHTML = `Subtotal: ${fmt(subtotal)}${discount > 0 ? ` &nbsp;·&nbsp; Discount: −${fmt(discount)}` : ''}`;
   if (totalEl) totalEl.textContent = fmt(invoiceGrandTotal());
+  if (balanceEl && Number(invoiceDraft.advanceAmount) > 0) {
+    balanceEl.innerHTML = `Advance: ${fmt(invoiceDraft.advanceAmount)} &nbsp;·&nbsp; Balance Due: <strong style="color:var(--text);">${fmt(invoiceGrandTotal() - Number(invoiceDraft.advanceAmount))}</strong>`;
+  }
 }
