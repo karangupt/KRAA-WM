@@ -108,7 +108,7 @@ const MODULES = {
       { name: 'category', label: 'Category', type: 'select', options: [
         'Grocery', 'Vegetable', 'Milk & Dairy', 'LPG Cylinder', 'Fuel', 'Clothing', 'Footwear', 'Medical & Health', 'Food & Dining',
         'Utilities (Electricity/Water/Internet)', 'Electricity', 'Internet Recharge', 'Mobile Recharge', 'Rent', 'Society Maintenance', 'Property Tax',
-        'Equipment Maintenance', 'Equipment Purchase', 'Salaries & Wages', 'Marketing & Advertising', 'Office Supplies', 'Hardware & Tools', 'Transport & Delivery', 'Insurance Premium',
+        'Equipment Maintenance', 'Equipment Purchase', 'Vendor Outsourcing / Subcontracting', 'Salaries & Wages', 'Marketing & Advertising', 'Office Supplies', 'Hardware & Tools', 'Transport & Delivery', 'Insurance Premium',
         'Travel', 'Education', 'Entertainment', 'Loan / EMI', 'Miscellaneous'
       ] },
       { name: 'desc', label: 'Description', type: 'text' },
