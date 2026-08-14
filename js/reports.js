@@ -74,18 +74,80 @@ async function refreshStockPrices() {
 }
 
 /* ---------- Reports ---------- */
-let reportsSelectedCategory = ''; // persists across re-renders while on the Reports page
+// Period the Reports page is currently scoped to. Defaults to the running
+// month so numbers on load always reflect "this month", per the report
+// dashboard requirement. Persist across re-renders while on this page.
+let reportsPeriodMode = 'month';                    // 'month' | 'year' | 'all'
+let reportsPeriodMonth = todayStr().slice(0, 7);     // 'YYYY-MM'
+let reportsPeriodYear = todayStr().slice(0, 4);      // 'YYYY'
+
+// Expense-type filter: lets Personal Expense and Corporate (business)
+// Expense be viewed separately across every breakdown on this page.
+let reportsTypeFilter = 'all'; // 'all' | 'corporate' | 'personal'
+
+// '' means "All Categories" — previously there was no way to clear a
+// category selection back to a combined view once one was picked.
+let reportsSelectedCategory = '';
+
+function reportsPeriodLabel() {
+  if (reportsPeriodMode === 'all') return 'All Time';
+  if (reportsPeriodMode === 'year') return reportsPeriodYear;
+  return new Date(reportsPeriodMonth + '-01').toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+}
+
+function reportsInPeriod(dateStr) {
+  if (!dateStr) return false;
+  if (reportsPeriodMode === 'all') return true;
+  if (reportsPeriodMode === 'year') return dateStr.startsWith(reportsPeriodYear);
+  return dateStr.slice(0, 7) === reportsPeriodMonth;
+}
+
+function reportsAllYears() {
+  const dates = [
+    ...Store.all('invoices'), ...Store.all('otherIncome'),
+    ...Store.all('expenses'), ...Store.all('personalExpenses')
+  ].map(r => (r.date || '').slice(0, 4)).filter(Boolean);
+  const years = [...new Set(dates)].sort().reverse();
+  if (!years.includes(reportsPeriodYear)) years.unshift(reportsPeriodYear);
+  return years;
+}
+
+function reportsFilterByType(list) {
+  if (reportsTypeFilter === 'corporate') return list.filter(e => e._expType === 'corporate');
+  if (reportsTypeFilter === 'personal') return list.filter(e => e._expType === 'personal');
+  return list;
+}
+
+function renderReportsPeriodPicker() {
+  const years = reportsAllYears();
+  return `
+  <div class="section-head">
+    <h2>Reports — ${reportsPeriodLabel()}</h2>
+    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+      <select id="reportsPeriodMode" style="width:auto;">
+        <option value="month" ${reportsPeriodMode === 'month' ? 'selected' : ''}>This Month</option>
+        <option value="year" ${reportsPeriodMode === 'year' ? 'selected' : ''}>This Year</option>
+        <option value="all" ${reportsPeriodMode === 'all' ? 'selected' : ''}>All Time</option>
+      </select>
+      ${reportsPeriodMode === 'month' ? `<input type="month" id="reportsPeriodMonth" value="${reportsPeriodMonth}" style="width:auto;">` : ''}
+      ${reportsPeriodMode === 'year' ? `<select id="reportsPeriodYear" style="width:auto;">${years.map(y => `<option value="${y}" ${y === reportsPeriodYear ? 'selected' : ''}>${y}</option>`).join('')}</select>` : ''}
+    </div>
+  </div>`;
+}
 
 function renderCategoryMonthlyBreakdown(expenses, yearKey) {
-  const categories = [...new Set(expenses.map(e => e.category || 'Uncategorised'))].sort();
-  if (!reportsSelectedCategory || !categories.includes(reportsSelectedCategory)) {
-    reportsSelectedCategory = categories[0] || '';
+  const filtered = reportsFilterByType(expenses);
+  const categories = [...new Set(filtered.map(e => e.category || 'Uncategorised'))].sort();
+  // Reset to "All Categories" only if the previously selected category no
+  // longer exists in this filtered set — '' itself is always a valid choice.
+  if (reportsSelectedCategory && !categories.includes(reportsSelectedCategory)) {
+    reportsSelectedCategory = '';
   }
   const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const monthlyTotals = monthNames.map((_, i) => {
     const mk = `${yearKey}-${String(i + 1).padStart(2, '0')}`;
-    return expenses
-      .filter(e => (e.category || 'Uncategorised') === reportsSelectedCategory && (e.date || '').startsWith(mk))
+    return filtered
+      .filter(e => (reportsSelectedCategory === '' || (e.category || 'Uncategorised') === reportsSelectedCategory) && (e.date || '').startsWith(mk))
       .reduce((s, e) => s + Number(e.amount || 0), 0);
   });
   const yearTotal = monthlyTotals.reduce((s, a) => s + a, 0);
@@ -95,7 +157,8 @@ function renderCategoryMonthlyBreakdown(expenses, yearKey) {
     <div class="section-head">
       <h2>Category-wise monthly breakdown — ${yearKey}</h2>
       <select id="reportsCategorySelect" style="width:auto;">
-        ${categories.length ? categories.map(c => `<option value="${c}" ${c === reportsSelectedCategory ? 'selected' : ''}>${c}</option>`).join('') : '<option>No expenses yet</option>'}
+        <option value="" ${reportsSelectedCategory === '' ? 'selected' : ''}>All Categories</option>
+        ${categories.map(c => `<option value="${c}" ${c === reportsSelectedCategory ? 'selected' : ''}>${c}</option>`).join('')}
       </select>
     </div>
     ${categories.length ? `
@@ -103,102 +166,112 @@ function renderCategoryMonthlyBreakdown(expenses, yearKey) {
       <thead><tr>${monthNames.map(m => `<th>${m}</th>`).join('')}<th>Total</th></tr></thead>
       <tbody><tr>${monthlyTotals.map(a => `<td>${a > 0 ? fmt(a) : '—'}</td>`).join('')}<td><strong>${fmt(yearTotal)}</strong></td></tr></tbody>
     </table></div>
-    <p style="color:var(--muted); font-size:12px; margin-top:10px;">Select a different category above to see its month-by-month spend for ${yearKey}.</p>
+    <p style="color:var(--muted); font-size:12px; margin-top:10px;">${reportsSelectedCategory ? `Showing "${reportsSelectedCategory}" only — pick "All Categories" above to see the combined total.` : `Showing all categories combined for ${yearKey}. Pick a category above to drill into just that one.`}</p>
     ` : `<div class="empty-state"><div class="glyph"><i data-lucide="receipt"></i></div>No expenses logged yet.</div>`}
   </div>`;
 }
 
 function renderReports() {
   const invoices = Store.all('invoices');
-  const payments = Store.all('payments');
-  const expenses = Store.all('expenses');
   const bookings = Store.all('bookings');
   const otherIncome = Store.all('otherIncome');
+  const creditCards = Store.all('creditCards');
 
-  const businessRevenue = invoices.reduce((s, i) => s + Number(i.amount || 0), 0);
-  const otherIncomeTotal = otherIncome.reduce((s, o) => s + Number(o.amount || 0), 0);
+  // Corporate (business) and Personal expenses are separate collections in
+  // the store — tag each so every breakdown below can filter/split by type.
+  const corporateExpenses = Store.all('expenses').map(e => ({ ...e, _expType: 'corporate' }));
+  const personalExpenses = Store.all('personalExpenses').map(e => ({ ...e, _expType: 'personal' }));
+  const allExpenses = [...corporateExpenses, ...personalExpenses];
+
+  const periodInvoices = invoices.filter(i => reportsInPeriod(i.date));
+  const periodOtherIncome = otherIncome.filter(o => reportsInPeriod(o.date));
+  const businessRevenue = periodInvoices.reduce((s, i) => s + Number(i.amount || 0), 0);
+  const otherIncomeTotal = periodOtherIncome.reduce((s, o) => s + Number(o.amount || 0), 0);
   const revenue = businessRevenue + otherIncomeTotal;
-  const totalExpenses = expenses.reduce((s, e) => s + Number(e.amount || 0), 0);
+
+  const periodCorporateExpenses = corporateExpenses.filter(e => reportsInPeriod(e.date));
+  const periodPersonalExpenses = personalExpenses.filter(e => reportsInPeriod(e.date));
+  const corporateTotal = periodCorporateExpenses.reduce((s, e) => s + Number(e.amount || 0), 0);
+  const personalTotal = periodPersonalExpenses.reduce((s, e) => s + Number(e.amount || 0), 0);
+  const totalExpenses = corporateTotal + personalTotal;
   const profit = revenue - totalExpenses;
 
-  const paidPerInvoice = {};
-  payments.forEach(p => { paidPerInvoice[p.invoiceId] = (paidPerInvoice[p.invoiceId] || 0) + Number(p.amount || 0); });
-  const outstanding = invoices.reduce((s, i) => {
-    const paid = paidPerInvoice[i.id] || 0;
-    const due = Number(i.amount || 0) - paid;
-    return s + (due > 0 ? due : 0);
-  }, 0);
+  // Outstanding Payments now reflects money Karan owes (credit card dues),
+  // not money customers owe him — previously this pulled from unpaid
+  // invoice balances, which was the wrong source.
+  const outstanding = creditCards.reduce((s, c) => s + Number(c.dueAmount || 0), 0);
 
-  const expenseByCategory = {};
-  expenses.forEach(e => { expenseByCategory[e.category || 'Uncategorised'] = (expenseByCategory[e.category || 'Uncategorised'] || 0) + Number(e.amount || 0); });
-  const catRows = Object.entries(expenseByCategory).sort((a, b) => b[1] - a[1]);
-
-  const thisMonthKey = todayStr().slice(0, 7);
-  const thisYearKey = todayStr().slice(0, 4);
-  const expenseByCategoryMonth = {};
-  const expenseByCategoryYear = {};
-  expenses.forEach(e => {
+  const periodExpensesByType = reportsFilterByType([...periodCorporateExpenses, ...periodPersonalExpenses]);
+  const expenseByCategoryPeriod = {};
+  periodExpensesByType.forEach(e => {
     const cat = e.category || 'Uncategorised';
-    if ((e.date || '').startsWith(thisMonthKey)) expenseByCategoryMonth[cat] = (expenseByCategoryMonth[cat] || 0) + Number(e.amount || 0);
-    if ((e.date || '').startsWith(thisYearKey)) expenseByCategoryYear[cat] = (expenseByCategoryYear[cat] || 0) + Number(e.amount || 0);
+    expenseByCategoryPeriod[cat] = (expenseByCategoryPeriod[cat] || 0) + Number(e.amount || 0);
   });
-  const catRowsMonth = Object.entries(expenseByCategoryMonth).sort((a, b) => b[1] - a[1]);
-  const catRowsYear = Object.entries(expenseByCategoryYear).sort((a, b) => b[1] - a[1]);
-  const monthLabelText = new Date(thisMonthKey + '-01').toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+  const catRowsPeriod = Object.entries(expenseByCategoryPeriod).sort((a, b) => b[1] - a[1]);
+
+  const allExpensesByType = reportsFilterByType(allExpenses);
+  const expenseByCategoryAll = {};
+  allExpensesByType.forEach(e => {
+    const cat = e.category || 'Uncategorised';
+    expenseByCategoryAll[cat] = (expenseByCategoryAll[cat] || 0) + Number(e.amount || 0);
+  });
+  const catRowsAll = Object.entries(expenseByCategoryAll).sort((a, b) => b[1] - a[1]);
 
   const incomeBySource = {};
-  otherIncome.forEach(o => { incomeBySource[o.type || 'Other'] = (incomeBySource[o.type || 'Other'] || 0) + Number(o.amount || 0); });
+  periodOtherIncome.forEach(o => { incomeBySource[o.type || 'Other'] = (incomeBySource[o.type || 'Other'] || 0) + Number(o.amount || 0); });
   const incomeRows = Object.entries(incomeBySource).sort((a, b) => b[1] - a[1]);
 
   const statusCounts = {};
   bookings.forEach(b => { statusCounts[b.status || 'unknown'] = (statusCounts[b.status || 'unknown'] || 0) + 1; });
 
+  const breakdownYear = reportsPeriodMode === 'year' ? reportsPeriodYear : todayStr().slice(0, 4);
+
   return `
+  ${renderReportsPeriodPicker()}
+
   <div class="kpi-row">
     <div class="kpi"><div class="kpi-label">Total Revenue</div><div class="kpi-value">${fmt(revenue)}</div><div class="kpi-sub">Business ${fmt(businessRevenue)} + Other Income ${fmt(otherIncomeTotal)}</div></div>
-    <div class="kpi"><div class="kpi-label">Total Expenses</div><div class="kpi-value">${fmt(totalExpenses)}</div></div>
-    <div class="kpi"><div class="kpi-label">Net Profit</div><div class="kpi-value" style="color:${profit >= 0 ? 'var(--teal)' : 'var(--danger)'}">${fmt(profit)}</div></div>
-    <div class="kpi"><div class="kpi-label">Outstanding Payments</div><div class="kpi-value">${fmt(outstanding)}</div></div>
+    <div class="kpi"><div class="kpi-label">Corporate Expense</div><div class="kpi-value">${fmt(corporateTotal)}</div><div class="kpi-sub">${reportsPeriodLabel()}</div></div>
+    <div class="kpi"><div class="kpi-label">Personal Expense</div><div class="kpi-value">${fmt(personalTotal)}</div><div class="kpi-sub">${reportsPeriodLabel()}</div></div>
+    <div class="kpi"><div class="kpi-label">Net Profit</div><div class="kpi-value" style="color:${profit >= 0 ? 'var(--teal)' : 'var(--danger)'}">${fmt(profit)}</div><div class="kpi-sub">Revenue − (Corporate + Personal)</div></div>
+    <div class="kpi"><div class="kpi-label">Outstanding Payments</div><div class="kpi-value">${fmt(outstanding)}</div><div class="kpi-sub">Total credit card dues</div></div>
   </div>
 
   <div class="card">
-    <div class="section-head"><h2>Expenses by category — ${monthLabelText}</h2></div>
-    ${catRowsMonth.length ? `
+    <div class="section-head">
+      <h2>Expenses by category — ${reportsPeriodLabel()}</h2>
+      <select id="reportsTypeFilter" style="width:auto;">
+        <option value="all" ${reportsTypeFilter === 'all' ? 'selected' : ''}>All Expenses</option>
+        <option value="corporate" ${reportsTypeFilter === 'corporate' ? 'selected' : ''}>Corporate Only</option>
+        <option value="personal" ${reportsTypeFilter === 'personal' ? 'selected' : ''}>Personal Only</option>
+      </select>
+    </div>
+    ${catRowsPeriod.length ? `
     <div class="table-wrap"><table class="ledger">
       <thead><tr><th>Category</th><th>Amount</th></tr></thead>
-      <tbody>${catRowsMonth.map(([cat, amt]) => `<tr><td class="name-cell">${cat}</td><td>${fmt(amt)}</td></tr>`).join('')}</tbody>
-      <tfoot><tr><td><strong>Total</strong></td><td><strong>${fmt(catRowsMonth.reduce((s, [, a]) => s + a, 0))}</strong></td></tr></tfoot>
-    </table></div>` : `<div class="empty-state"><div class="glyph"><i data-lucide="receipt"></i></div>No expenses logged this month yet.</div>`}
+      <tbody>${catRowsPeriod.map(([cat, amt]) => `<tr><td class="name-cell">${cat}</td><td>${fmt(amt)}</td></tr>`).join('')}</tbody>
+      <tfoot><tr><td><strong>Total</strong></td><td><strong>${fmt(catRowsPeriod.reduce((s, [, a]) => s + a, 0))}</strong></td></tr></tfoot>
+    </table></div>` : `<div class="empty-state"><div class="glyph"><i data-lucide="receipt"></i></div>No expenses logged for ${reportsPeriodLabel()} yet.</div>`}
   </div>
 
-  <div class="card">
-    <div class="section-head"><h2>Expenses by category — ${thisYearKey}</h2></div>
-    ${catRowsYear.length ? `
-    <div class="table-wrap"><table class="ledger">
-      <thead><tr><th>Category</th><th>Amount</th></tr></thead>
-      <tbody>${catRowsYear.map(([cat, amt]) => `<tr><td class="name-cell">${cat}</td><td>${fmt(amt)}</td></tr>`).join('')}</tbody>
-      <tfoot><tr><td><strong>Total</strong></td><td><strong>${fmt(catRowsYear.reduce((s, [, a]) => s + a, 0))}</strong></td></tr></tfoot>
-    </table></div>` : `<div class="empty-state"><div class="glyph"><i data-lucide="receipt"></i></div>No expenses logged this year yet.</div>`}
-  </div>
-
-  ${renderCategoryMonthlyBreakdown(expenses, thisYearKey)}
+  ${renderCategoryMonthlyBreakdown(allExpenses, breakdownYear)}
 
   <div class="card">
     <div class="section-head"><h2>Expenses by category — All Time</h2></div>
-    ${catRows.length ? `
+    ${catRowsAll.length ? `
     <div class="table-wrap"><table class="ledger">
       <thead><tr><th>Category</th><th>Amount</th></tr></thead>
-      <tbody>${catRows.map(([cat, amt]) => `<tr><td class="name-cell">${cat}</td><td>${fmt(amt)}</td></tr>`).join('')}</tbody>
+      <tbody>${catRowsAll.map(([cat, amt]) => `<tr><td class="name-cell">${cat}</td><td>${fmt(amt)}</td></tr>`).join('')}</tbody>
     </table></div>` : `<div class="empty-state"><div class="glyph"><i data-lucide="receipt"></i></div>No expenses logged yet.</div>`}
   </div>
 
   <div class="card">
-    <div class="section-head"><h2>Other income by source</h2></div>
+    <div class="section-head"><h2>Other income by source — ${reportsPeriodLabel()}</h2></div>
     ${incomeRows.length ? `
     <div class="table-wrap"><table class="ledger">
       <thead><tr><th>Source</th><th>Amount</th></tr></thead>
       <tbody>${incomeRows.map(([src, amt]) => `<tr><td class="name-cell">${src}</td><td>${fmt(amt)}</td></tr>`).join('')}</tbody>
-    </table></div>` : `<div class="empty-state"><div class="glyph"><i data-lucide="wallet"></i></div>No other income logged yet.</div>`}
+    </table></div>` : `<div class="empty-state"><div class="glyph"><i data-lucide="wallet"></i></div>No other income logged for ${reportsPeriodLabel()} yet.</div>`}
   </div>
 
   <div class="card">
@@ -271,6 +344,22 @@ function renderNetWorth() {
 
 function wireReports() {
   const root = $('#viewRoot');
+  root.querySelector('#reportsPeriodMode')?.addEventListener('change', (e) => {
+    reportsPeriodMode = e.target.value;
+    render();
+  });
+  root.querySelector('#reportsPeriodMonth')?.addEventListener('change', (e) => {
+    if (e.target.value) reportsPeriodMonth = e.target.value;
+    render();
+  });
+  root.querySelector('#reportsPeriodYear')?.addEventListener('change', (e) => {
+    reportsPeriodYear = e.target.value;
+    render();
+  });
+  root.querySelector('#reportsTypeFilter')?.addEventListener('change', (e) => {
+    reportsTypeFilter = e.target.value;
+    render();
+  });
   root.querySelector('#reportsCategorySelect')?.addEventListener('change', (e) => {
     reportsSelectedCategory = e.target.value;
     render();
