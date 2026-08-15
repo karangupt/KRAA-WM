@@ -198,6 +198,11 @@ function renderModuleView(cfg, key) {
   if (periodState) {
     rows = rows.filter(r => moduleInPeriod(r[cfg.dateFilterField], periodState));
   }
+  // Summaries (the KPI row above the table, e.g. "Total Booking Value") should
+  // reflect the selected period — captured here, before status-tab/search
+  // filters further narrow `rows` below, so summaries stay tab/search-agnostic
+  // like before but now DO respect This Month / This Year / All Time.
+  const summaryRows = rows;
 
   const selectedTab = cfg.statusTabs ? getSelectedTab(key) : 'all';
   if (cfg.statusTabs && selectedTab !== 'all') {
@@ -282,7 +287,7 @@ function renderModuleView(cfg, key) {
   </div>` : ''}
   ${summaryDefs ? `
   <div class="kpi-row">
-    ${summaryDefs.map(s => `<div class="kpi"><div class="kpi-label">${s.label}</div><div class="kpi-value">${s.compute(Store.all(cfg.collection))}</div></div>`).join('')}
+    ${summaryDefs.map(s => `<div class="kpi"><div class="kpi-label">${s.label}${periodState ? ' — ' + modulePeriodLabel(periodState) : ''}</div><div class="kpi-value">${s.compute(summaryRows)}</div></div>`).join('')}
   </div>` : ''}
   ${MODULE_MONTHLY_BREAKDOWN.includes(key) ? renderMiniMonthlyBreakdown(Store.all(cfg.collection)) : ''}
   ${rows.length ? `
