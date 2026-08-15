@@ -104,8 +104,7 @@ function reportsInPeriod(dateStr) {
 
 function reportsAllYears() {
   const dates = [
-    ...Store.all('invoices'), ...Store.all('otherIncome'),
-    ...Store.all('expenses'), ...Store.all('personalExpenses')
+    ...Store.all('invoices'), ...Store.all('otherIncome'), ...Store.all('expenses')
   ].map(r => (r.date || '').slice(0, 4)).filter(Boolean);
   const years = [...new Set(dates)].sort().reverse();
   if (!years.includes(reportsPeriodYear)) years.unshift(reportsPeriodYear);
@@ -177,11 +176,16 @@ function renderReports() {
   const otherIncome = Store.all('otherIncome');
   const creditCards = Store.all('creditCards');
 
-  // Corporate (business) and Personal expenses are separate collections in
-  // the store — tag each so every breakdown below can filter/split by type.
-  const corporateExpenses = Store.all('expenses').map(e => ({ ...e, _expType: 'corporate' }));
-  const personalExpenses = Store.all('personalExpenses').map(e => ({ ...e, _expType: 'personal' }));
-  const allExpenses = [...corporateExpenses, ...personalExpenses];
+  // Corporate vs Personal is a field on each expense record (expenseType),
+  // not a separate collection — every expense lives in Store 'expenses'.
+  // A missing/blank expenseType defaults to Corporate, matching how the
+  // Expenses module itself displays it (render: v => v || 'Corporate').
+  const allExpenses = Store.all('expenses').map(e => ({
+    ...e,
+    _expType: e.expenseType === 'Personal' ? 'personal' : 'corporate'
+  }));
+  const corporateExpenses = allExpenses.filter(e => e._expType === 'corporate');
+  const personalExpenses = allExpenses.filter(e => e._expType === 'personal');
 
   const periodInvoices = invoices.filter(i => reportsInPeriod(i.date));
   const periodOtherIncome = otherIncome.filter(o => reportsInPeriod(o.date));
