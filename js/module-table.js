@@ -142,6 +142,34 @@ function setSelectedTab(moduleKey, tab) {
   } catch (e) {}
 }
 
+// Per-module date-period filter (This Month / This Year / All Time) — only
+// active for modules whose MODULES config sets a `dateFilterField` (e.g.
+// Bookings uses 'startDate'). Not persisted to localStorage on purpose:
+// like the search box, it resets to "This Month" on reload.
+const modulePeriodState = {}; // { [key]: { mode: 'month'|'year'|'all', month: 'YYYY-MM', year: 'YYYY' } }
+function getModulePeriod(key) {
+  if (!modulePeriodState[key]) {
+    modulePeriodState[key] = { mode: 'month', month: todayStr().slice(0, 7), year: todayStr().slice(0, 4) };
+  }
+  return modulePeriodState[key];
+}
+function moduleInPeriod(dateStr, period) {
+  if (!dateStr) return false;
+  if (period.mode === 'all') return true;
+  if (period.mode === 'year') return dateStr.startsWith(period.year);
+  return dateStr.slice(0, 7) === period.month;
+}
+function moduleAllYears(cfg, period) {
+  const years = [...new Set(Store.all(cfg.collection).map(r => (r[cfg.dateFilterField] || '').slice(0, 4)).filter(Boolean))].sort().reverse();
+  if (!years.includes(period.year)) years.unshift(period.year);
+  return years;
+}
+function modulePeriodLabel(period) {
+  if (period.mode === 'all') return 'All Time';
+  if (period.mode === 'year') return period.year;
+  return new Date(period.month + '-01').toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+}
+
 const SORT_PREF_KEY = 'workspace_sort_pref_v1';
 migrateLegacyKey('kraa_sort_pref_v1', SORT_PREF_KEY);
 function getSortPref(moduleKey) {
@@ -165,6 +193,12 @@ function clearSortPref(moduleKey) {
 
 function renderModuleView(cfg, key) {
   let rows = Store.all(cfg.collection);
+
+  const periodState = cfg.dateFilterField ? getModulePeriod(key) : null;
+  if (periodState) {
+    rows = rows.filter(r => moduleInPeriod(r[cfg.dateFilterField], periodState));
+  }
+
   const selectedTab = cfg.statusTabs ? getSelectedTab(key) : 'all';
   if (cfg.statusTabs && selectedTab !== 'all') {
     rows = rows.filter(r => r.status === selectedTab);
@@ -197,8 +231,17 @@ function renderModuleView(cfg, key) {
   return `
   <div id="moduleWrap_${key}">
   <div class="section-head">
-    <h2>${cfg.title}</h2>
+    <h2>${cfg.title}${periodState ? ' — ' + modulePeriodLabel(periodState) : ''}</h2>
     <div style="display:flex; gap:10px; position:relative; flex-wrap:wrap; align-items:center;">
+      ${periodState ? `
+        <select id="periodMode_${key}" style="width:auto;">
+          <option value="month" ${periodState.mode === 'month' ? 'selected' : ''}>This Month</option>
+          <option value="year" ${periodState.mode === 'year' ? 'selected' : ''}>This Year</option>
+          <option value="all" ${periodState.mode === 'all' ? 'selected' : ''}>All Time</option>
+        </select>
+        ${periodState.mode === 'month' ? `<input type="month" id="periodMonth_${key}" value="${periodState.month}" style="width:auto;">` : ''}
+        ${periodState.mode === 'year' ? `<select id="periodYear_${key}" style="width:auto;">${moduleAllYears(cfg, periodState).map(y => `<option value="${y}" ${y === periodState.year ? 'selected' : ''}>${y}</option>`).join('')}</select>` : ''}
+      ` : ''}
       ${rows.length > 1 ? `
         <div style="display:flex; gap:4px; align-items:center; border:1px solid var(--line); border-radius:8px; padding:4px 6px;">
           <span style="font-size:11px; color:var(--muted); margin-right:4px;">Reorder:</span>
@@ -266,7 +309,7 @@ function renderModuleView(cfg, key) {
         </td>
       </tr>`).join('')}
     </tbody>
-  </table></div>` : `<div class="empty-state"><div class="glyph"><i data-lucide="${cfg.icon}"></i></div>${selectedTab !== 'all' ? `Nothing with status "${selectedTab}" — try the "All" tab above.` : 'No records yet. Click "+ Add" to create the first one.'}</div>`}
+  </table></div>` : `<div class="empty-state"><div class="glyph"><i data-lucide="${cfg.icon}"></i></div>${selectedTab !== 'all' ? `Nothing with status "${selectedTab}" — try the "All" tab above.` : (periodState && periodState.mode !== 'all' ? `Nothing for ${modulePeriodLabel(periodState)} — try "All Time" above, or click "+ Add".` : 'No records yet. Click "+ Add" to create the first one.')}</div>`}
   ${rows.length > 1 ? `<p style="color:var(--muted); font-size:11.5px; margin-top:10px;">Check one row, then use the Reorder ⤒ ↑ ↓ ⤓ controls above to move it — this clears any active column sort so your order shows. Check multiple rows to bulk-delete them.</p>` : ''}
   </div>`;
 }
@@ -286,6 +329,21 @@ function wireModuleView(key) {
         newBox.focus();
         newBox.setSelectionRange(cursorPos, cursorPos);
       }
+    });
+  }
+
+  if (MODULES[key] && MODULES[key].dateFilterField) {
+    root.querySelector(`#periodMode_${key}`)?.addEventListener('change', (e) => {
+      getModulePeriod(key).mode = e.target.value;
+      render();
+    });
+    root.querySelector(`#periodMonth_${key}`)?.addEventListener('change', (e) => {
+      if (e.target.value) getModulePeriod(key).month = e.target.value;
+      render();
+    });
+    root.querySelector(`#periodYear_${key}`)?.addEventListener('change', (e) => {
+      getModulePeriod(key).year = e.target.value;
+      render();
     });
   }
 
