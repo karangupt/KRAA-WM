@@ -25,6 +25,7 @@ const MODULES = {
     title: 'Bookings', collection: 'bookings', icon: 'calendar-check',
     statusTabs: ['pending', 'confirmed', 'completed', 'cancelled'],
     sortField: 'startDate',
+    dateFilterField: 'startDate', // enables the This Month / This Year / All Time picker on the Bookings list
     columns: [
       { label: 'Item', field: 'item', cls: 'name-cell' },
       { label: 'Client', field: 'clientName' },
