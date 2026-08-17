@@ -91,6 +91,12 @@ const MODULES = {
   },
   expense: {
     title: 'Expenses', collection: 'expenses', icon: 'receipt',
+    sortField: 'date',
+    dateFilterField: 'date', // enables the This Month / This Year / All Time picker
+    // "All / Corporate / Personal" tabs, same idea as Bookings' status tabs
+    // but keyed to expenseType instead of status. A blank expenseType is
+    // treated as Corporate, matching how the Type column already displays it.
+    typeTabs: { field: 'expenseType', values: ['Corporate', 'Personal'], defaultValue: 'Corporate' },
     columns: [
       { label: 'Date', field: 'date', render: fmtDate },
       { label: 'Type', field: 'expenseType', render: v => v || 'Corporate' },
