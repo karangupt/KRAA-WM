@@ -94,7 +94,7 @@ const MODULES = {
     columns: [
       { label: 'Date', field: 'date', render: fmtDate },
       { label: 'Type', field: 'expenseType', render: v => v || 'Corporate' },
-      { label: 'Category', field: 'category' },
+      { label: 'Category', field: 'category', render: (v, row) => v === 'Grocery' && row.subCategory ? `Grocery — ${row.subCategory}` : (v || '—') },
       { label: 'Description', field: 'desc', cls: 'name-cell' },
       { label: 'Paid Via', field: 'paymentMode', render: (v, row) => {
           if (v !== 'Credit Card') return v || '—';
@@ -106,11 +106,25 @@ const MODULES = {
     fields: [
       { name: 'date', label: 'Date', type: 'date', required: true },
       { name: 'expenseType', label: 'Personal or Corporate?', type: 'select', options: ['Corporate','Personal'], required: true },
+      // Cleaned up — 'Vegetable' and 'Milk & Dairy' used to sit here as their
+      // own top-level categories even though they're groceries; they're now
+      // Grocery sub-categories below. The old 'Utilities (Electricity/Water/
+      // Internet)' umbrella overlapped with the granular Electricity/Internet
+      // Recharge items right next to it, so it's gone too — replaced with a
+      // standalone 'Water Bill' to cover the one thing it had that nothing
+      // else did.
       { name: 'category', label: 'Category', type: 'select', options: [
-        'Grocery', 'Vegetable', 'Milk & Dairy', 'LPG Cylinder', 'Fuel', 'Clothing', 'Footwear', 'Medical & Health', 'Food & Dining',
-        'Utilities (Electricity/Water/Internet)', 'Electricity', 'Internet Recharge', 'Mobile Recharge', 'Rent', 'Society Maintenance', 'Property Tax',
+        'Grocery', 'LPG Cylinder', 'Water Bill', 'Electricity', 'Internet Recharge', 'Mobile Recharge', 'Fuel', 'Clothing', 'Footwear', 'Medical & Health', 'Food & Dining',
+        'Rent', 'Society Maintenance', 'Property Tax',
         'Equipment Maintenance', 'Equipment Purchase', 'Vendor Outsourcing / Subcontracting', 'Salaries & Wages', 'Marketing & Advertising', 'Office Supplies', 'Hardware & Tools', 'Transport & Delivery', 'Insurance Premium',
         'Travel', 'Education', 'Entertainment', 'Loan / EMI', 'Miscellaneous'
+      ] },
+      // Only shown when Category = Grocery — same conditional pattern already
+      // used below for "Which credit card?".
+      { name: 'subCategory', label: 'Grocery Sub-Category', type: 'select', showIf: { field: 'category', equals: 'Grocery' }, options: [
+        'Fruits & Vegetables', 'Milk & Dairy', 'Grains, Atta & Rice', 'Pulses & Dals', 'Spices & Masalas',
+        'Cooking Oil & Ghee', 'Bakery & Bread', 'Snacks & Namkeen', 'Beverages (Tea/Coffee/Juices)',
+        'Meat, Fish & Eggs', 'Frozen & Ready-to-Eat', 'Personal Care & Toiletries', 'Cleaning & Household Supplies', 'Other Grocery'
       ] },
       { name: 'desc', label: 'Description', type: 'text' },
       { name: 'paymentMode', label: 'Paid via', type: 'select', options: ['Cash','UPI','Credit Card'] },
