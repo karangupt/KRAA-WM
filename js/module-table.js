@@ -60,8 +60,7 @@ const MODULE_SUMMARIES = {
     { label: 'Personal', compute: rows => fmt(rows.filter(r => r.expenseType === 'Personal').reduce((s, r) => s + Number(r.amount || 0), 0)) }
   ],
   otherIncome: [
-    { label: 'This Month', compute: rows => fmt(sumThisMonth(rows)) },
-    { label: 'Total (All Time)', compute: rows => fmt(sumAll(rows)) }
+    { label: 'Total Income', compute: rows => fmt(sumAll(rows)) }
   ],
   booking: [
     { label: 'Active Bookings', compute: rows => rows.filter(r => r.status === 'confirmed' || r.status === 'pending').length },
@@ -267,11 +266,11 @@ function renderModuleView(cfg, key) {
     <div style="display:flex; gap:10px; position:relative; flex-wrap:wrap; align-items:center;">
       ${periodState ? `
         <select id="periodMode_${key}" style="width:auto;">
-          <option value="month" ${periodState.mode === 'month' ? 'selected' : ''}>This Month</option>
+          <option value="month" ${periodState.mode === 'month' ? 'selected' : ''}>Monthly</option>
           <option value="year" ${periodState.mode === 'year' ? 'selected' : ''}>This Year</option>
           <option value="all" ${periodState.mode === 'all' ? 'selected' : ''}>All Time</option>
         </select>
-        ${periodState.mode === 'month' ? `<input type="month" id="periodMonth_${key}" value="${periodState.month}" style="width:auto;">` : ''}
+        ${periodState.mode === 'month' ? `<input type="month" id="periodMonth_${key}" value="${periodState.month}" style="width:auto;" title="Pick any month — defaults to the current one">` : ''}
         ${periodState.mode === 'year' ? `<select id="periodYear_${key}" style="width:auto;">${moduleAllYears(cfg, periodState).map(y => `<option value="${y}" ${y === periodState.year ? 'selected' : ''}>${y}</option>`).join('')}</select>` : ''}
       ` : ''}
       ${rows.length > 1 ? `
