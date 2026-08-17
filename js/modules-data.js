@@ -141,6 +141,7 @@ const MODULES = {
   invoice: {
     title: 'Invoices', collection: 'invoices', icon: 'file-text',
     searchFields: ['number', 'customerName', 'date'],
+    dateFilterField: 'date',
     columns: [
       { label: 'Number', field: 'number', cls: 'name-cell' },
       { label: 'Type', field: 'docType', render: v => v === 'Tax Invoice' ? 'Invoice' : (v || 'Invoice') },
@@ -188,6 +189,7 @@ const MODULES = {
   },
   payments: {
     title: 'Payments', collection: 'payments', icon: 'banknote',
+    dateFilterField: 'date',
     columns: [
       { label: 'Date', field: 'date', render: fmtDate },
       { label: 'Invoice', field: 'invoiceId', render: v => {
@@ -354,6 +356,7 @@ const MODULES = {
   },
   otherIncome: {
     title: 'Other Income', collection: 'otherIncome', icon: 'wallet',
+    dateFilterField: 'date',
     columns: [
       { label: 'Date', field: 'date', render: fmtDate },
       { label: 'Source', field: 'type', cls: 'name-cell' },
