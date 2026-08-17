@@ -49,9 +49,15 @@ function sumThisMonth(rows, field = 'amount', dateField = 'date') {
 }
 
 const MODULE_SUMMARIES = {
+  // Expenses has its own This Month / This Year / All Time picker (via
+  // dateFilterField) — these three respect whatever period is selected there,
+  // and Corporate/Personal are always shown side-by-side regardless of which
+  // type-tab is active, so "look at Corporate separately" doesn't require
+  // clicking anything.
   expense: [
-    { label: 'This Month', compute: rows => fmt(sumThisMonth(rows)) },
-    { label: 'Total (All Time)', compute: rows => fmt(sumAll(rows)) }
+    { label: 'Total Expenses', compute: rows => fmt(sumAll(rows)) },
+    { label: 'Corporate', compute: rows => fmt(rows.filter(r => (r.expenseType || 'Corporate') === 'Corporate').reduce((s, r) => s + Number(r.amount || 0), 0)) },
+    { label: 'Personal', compute: rows => fmt(rows.filter(r => r.expenseType === 'Personal').reduce((s, r) => s + Number(r.amount || 0), 0)) }
   ],
   otherIncome: [
     { label: 'This Month', compute: rows => fmt(sumThisMonth(rows)) },
@@ -142,6 +148,22 @@ function setSelectedTab(moduleKey, tab) {
   } catch (e) {}
 }
 
+// Same idea as the status-tab pair above, but generic on whichever field a
+// module's `typeTabs` config points at (e.g. Expenses uses 'expenseType' to
+// give a Corporate/Personal "look at this one separately" view).
+const TYPE_TAB_KEY = 'workspace_type_tab_v1';
+function getSelectedTypeTab(moduleKey) {
+  try { return JSON.parse(localStorage.getItem(TYPE_TAB_KEY) || '{}')[moduleKey] || 'all'; }
+  catch (e) { return 'all'; }
+}
+function setSelectedTypeTab(moduleKey, tab) {
+  try {
+    const all = JSON.parse(localStorage.getItem(TYPE_TAB_KEY) || '{}');
+    all[moduleKey] = tab;
+    localStorage.setItem(TYPE_TAB_KEY, JSON.stringify(all));
+  } catch (e) {}
+}
+
 // Per-module date-period filter (This Month / This Year / All Time) — only
 // active for modules whose MODULES config sets a `dateFilterField` (e.g.
 // Bookings uses 'startDate'). Not persisted to localStorage on purpose:
@@ -207,6 +229,11 @@ function renderModuleView(cfg, key) {
   const selectedTab = cfg.statusTabs ? getSelectedTab(key) : 'all';
   if (cfg.statusTabs && selectedTab !== 'all') {
     rows = rows.filter(r => r.status === selectedTab);
+  }
+
+  const selectedTypeTab = cfg.typeTabs ? getSelectedTypeTab(key) : 'all';
+  if (cfg.typeTabs && selectedTypeTab !== 'all') {
+    rows = rows.filter(r => (r[cfg.typeTabs.field] || cfg.typeTabs.defaultValue) === selectedTypeTab);
   }
 
   const searchQuery = (moduleSearchQuery[key] || '').trim().toLowerCase();
@@ -285,6 +312,11 @@ function renderModuleView(cfg, key) {
     <button class="status-tab ${selectedTab === 'all' ? 'active' : ''}" data-tab="all">All</button>
     ${cfg.statusTabs.map(st => `<button class="status-tab ${selectedTab === st ? 'active' : ''}" data-tab="${st}">${st.charAt(0).toUpperCase() + st.slice(1)}</button>`).join('')}
   </div>` : ''}
+  ${cfg.typeTabs ? `
+  <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px;">
+    <button class="status-tab ${selectedTypeTab === 'all' ? 'active' : ''}" data-type-tab="all">All</button>
+    ${cfg.typeTabs.values.map(tv => `<button class="status-tab ${selectedTypeTab === tv ? 'active' : ''}" data-type-tab="${tv}">${tv}</button>`).join('')}
+  </div>` : ''}
   ${summaryDefs ? `
   <div class="kpi-row">
     ${summaryDefs.map(s => `<div class="kpi"><div class="kpi-label">${s.label}${periodState ? ' — ' + modulePeriodLabel(periodState) : ''}</div><div class="kpi-value">${s.compute(summaryRows)}</div></div>`).join('')}
@@ -314,7 +346,7 @@ function renderModuleView(cfg, key) {
         </td>
       </tr>`).join('')}
     </tbody>
-  </table></div>` : `<div class="empty-state"><div class="glyph"><i data-lucide="${cfg.icon}"></i></div>${selectedTab !== 'all' ? `Nothing with status "${selectedTab}" — try the "All" tab above.` : (periodState && periodState.mode !== 'all' ? `Nothing for ${modulePeriodLabel(periodState)} — try "All Time" above, or click "+ Add".` : 'No records yet. Click "+ Add" to create the first one.')}</div>`}
+  </table></div>` : `<div class="empty-state"><div class="glyph"><i data-lucide="${cfg.icon}"></i></div>${selectedTab !== 'all' ? `Nothing with status "${selectedTab}" — try the "All" tab above.` : (selectedTypeTab !== 'all' ? `Nothing tagged "${selectedTypeTab}" — try the "All" tab above.` : (periodState && periodState.mode !== 'all' ? `Nothing for ${modulePeriodLabel(periodState)} — try "All Time" above, or click "+ Add".` : 'No records yet. Click "+ Add" to create the first one.'))}</div>`}
   ${rows.length > 1 ? `<p style="color:var(--muted); font-size:11.5px; margin-top:10px;">Check one row, then use the Reorder ⤒ ↑ ↓ ⤓ controls above to move it — this clears any active column sort so your order shows. Check multiple rows to bulk-delete them.</p>` : ''}
   </div>`;
 }
@@ -490,9 +522,16 @@ function wireModuleView(key) {
     });
   });
 
-  root.querySelectorAll('.status-tab').forEach(tab => {
+  root.querySelectorAll('.status-tab[data-tab]').forEach(tab => {
     tab.addEventListener('click', () => {
       setSelectedTab(key, tab.dataset.tab);
+      render();
+    });
+  });
+
+  root.querySelectorAll('.status-tab[data-type-tab]').forEach(tab => {
+    tab.addEventListener('click', () => {
+      setSelectedTypeTab(key, tab.dataset.typeTab);
       render();
     });
   });
