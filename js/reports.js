@@ -124,11 +124,11 @@ function renderReportsPeriodPicker() {
     <h2>Reports — ${reportsPeriodLabel()}</h2>
     <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
       <select id="reportsPeriodMode" style="width:auto;">
-        <option value="month" ${reportsPeriodMode === 'month' ? 'selected' : ''}>This Month</option>
+        <option value="month" ${reportsPeriodMode === 'month' ? 'selected' : ''}>Monthly</option>
         <option value="year" ${reportsPeriodMode === 'year' ? 'selected' : ''}>This Year</option>
         <option value="all" ${reportsPeriodMode === 'all' ? 'selected' : ''}>All Time</option>
       </select>
-      ${reportsPeriodMode === 'month' ? `<input type="month" id="reportsPeriodMonth" value="${reportsPeriodMonth}" style="width:auto;">` : ''}
+      ${reportsPeriodMode === 'month' ? `<input type="month" id="reportsPeriodMonth" value="${reportsPeriodMonth}" style="width:auto;" title="Pick any month — defaults to the current one">` : ''}
       ${reportsPeriodMode === 'year' ? `<select id="reportsPeriodYear" style="width:auto;">${years.map(y => `<option value="${y}" ${y === reportsPeriodYear ? 'selected' : ''}>${y}</option>`).join('')}</select>` : ''}
     </div>
   </div>`;
