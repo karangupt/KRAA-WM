@@ -77,6 +77,15 @@ function renderSettingsView() {
     </div>
   </div>
 
+  <div class="card" style="border-left-color:var(--amber);">
+    <div class="section-head"><h2>Data maintenance</h2></div>
+    <p style="color:var(--muted); font-size:13px; margin-bottom:14px;">
+      Grocery used to have "Vegetable" and "Milk &amp; Dairy" as their own separate top-level expense categories, before they became Grocery sub-categories. Any expense entries logged back then are still sitting under those old category names, so they don't get counted as Grocery in Reports. This finds them and moves them under Grocery (with the matching sub-category ticked) — nothing else about the entry changes, and it's safe to run more than once.
+    </p>
+    <button class="btn secondary" id="migrateGroceryBtn">Fix old Vegetable / Milk &amp; Dairy entries → Grocery</button>
+    <div id="migrateGroceryStatus" style="margin-top:10px; font-size:12.5px; color:var(--muted);"></div>
+  </div>
+
   <div class="card" style="border-color:var(--danger);">
     <div class="section-head"><h2 style="color:var(--danger);">Danger zone</h2></div>
     <p style="color:var(--muted); font-size:13px; margin-bottom:14px;">This permanently deletes every record in every module on this device.</p>
@@ -290,6 +299,31 @@ function wireSettingsView() {
     status.textContent = failed.length
       ? `Done, but ${failed.length} collection(s) failed: ${failed.join(', ')}. Check the browser console for details.`
       : `All ${done} collections migrated to Supabase successfully.`;
+  });
+
+  root.querySelector('#migrateGroceryBtn')?.addEventListener('click', async () => {
+    const btn = root.querySelector('#migrateGroceryBtn');
+    const status = root.querySelector('#migrateGroceryStatus');
+    // Old category name -> which Grocery sub-category it becomes.
+    const LEGACY_MAP = { 'Vegetable': 'Fruits & Vegetables', 'Milk & Dairy': 'Milk & Dairy' };
+    const expenses = Store.all('expenses');
+    const toFix = expenses.filter(e => LEGACY_MAP[e.category]);
+    if (!toFix.length) {
+      status.textContent = 'Nothing to fix — no old Vegetable / Milk & Dairy entries found.';
+      return;
+    }
+    btn.disabled = true;
+    btn.textContent = 'Fixing...';
+    toFix.forEach(e => {
+      const newSub = LEGACY_MAP[e.category];
+      const existingSub = Array.isArray(e.subCategory) ? e.subCategory : [];
+      const mergedSub = existingSub.includes(newSub) ? existingSub : [...existingSub, newSub];
+      Store.update('expenses', e.id, { category: 'Grocery', subCategory: mergedSub });
+    });
+    await syncCollection('expense');
+    btn.disabled = false;
+    btn.textContent = 'Fix old Vegetable / Milk & Dairy entries → Grocery';
+    status.textContent = `Done — moved ${toFix.length} old entr${toFix.length === 1 ? 'y' : 'ies'} under Grocery. Check Reports to see the updated total.`;
   });
 
   root.querySelector('#revealDangerBtn')?.addEventListener('click', () => {
