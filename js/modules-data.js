@@ -100,7 +100,7 @@ const MODULES = {
     columns: [
       { label: 'Date', field: 'date', render: fmtDate },
       { label: 'Type', field: 'expenseType', render: v => v || 'Corporate' },
-      { label: 'Category', field: 'category', render: (v, row) => v === 'Grocery' && row.subCategory ? `Grocery — ${row.subCategory}` : (v || '—') },
+      { label: 'Category', field: 'category', render: (v, row) => v === 'Grocery' && Array.isArray(row.subCategory) && row.subCategory.length ? `Grocery — ${row.subCategory.join(', ')}` : (v || '—') },
       { label: 'Description', field: 'desc', cls: 'name-cell' },
       { label: 'Paid Via', field: 'paymentMode', render: (v, row) => {
           if (v !== 'Credit Card') return v || '—';
@@ -126,8 +126,10 @@ const MODULES = {
         'Travel', 'Education', 'Entertainment', 'Loan / EMI', 'Miscellaneous'
       ] },
       // Only shown when Category = Grocery — same conditional pattern already
-      // used below for "Which credit card?".
-      { name: 'subCategory', label: 'Grocery Sub-Category', type: 'select', showIf: { field: 'category', equals: 'Grocery' }, options: [
+      // used below for "Which credit card?". Multi-select so one entry can
+      // cover several sub-categories at once (e.g. a trip that had both
+      // vegetables and dairy).
+      { name: 'subCategory', label: 'Grocery Sub-Category (pick as many as apply)', type: 'multi-select', showIf: { field: 'category', equals: 'Grocery' }, options: [
         'Fruits & Vegetables', 'Milk & Dairy', 'Grains, Atta & Rice', 'Pulses & Dals', 'Spices & Masalas',
         'Cooking Oil & Ghee', 'Bakery & Bread', 'Snacks & Namkeen', 'Beverages (Tea/Coffee/Juices)',
         'Meat, Fish & Eggs', 'Frozen & Ready-to-Eat', 'Personal Care & Toiletries', 'Cleaning & Household Supplies', 'Other Grocery'
