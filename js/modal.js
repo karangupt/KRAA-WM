@@ -31,6 +31,15 @@ function openModal(moduleKey, id) {
           <option value="">—</option>
           ${opts.map(o => `<option value="${o.value}" ${o.value===val?'selected':''}>${o.label}</option>`).join('')}
         </select>`;
+    } else if (f.type === 'multi-select') {
+      const existing = Array.isArray(record[f.name]) ? record[f.name] : [];
+      inner = `<label>${f.label}</label>
+        <div class="multiselect-options" data-multiselect-field="${f.name}" style="display:flex; flex-direction:column; gap:2px; border:1px solid var(--line); border-radius:7px; padding:8px 10px; max-height:220px; overflow-y:auto;">
+          ${f.options.map(o => `<label style="display:flex; align-items:center; gap:8px; padding:4px 0; font-size:13.5px; font-weight:400; text-transform:none; letter-spacing:normal; color:var(--text); cursor:pointer;">
+            <input type="checkbox" value="${o}" ${existing.includes(o) ? 'checked' : ''} style="accent-color:var(--amber); width:15px; height:15px; flex-shrink:0;">
+            ${o}
+          </label>`).join('')}
+        </div>`;
     } else if (f.type === 'textarea') {
       inner = `<label>${f.label}</label>
         <textarea name="${f.name}" rows="5" style="width:100%; background:var(--bg); border:1px solid var(--line); color:var(--text); padding:9px 10px; border-radius:7px; font-size:13.5px; font-family:inherit; resize:vertical;" ${f.required?'required':''}>${val}</textarea>`;
@@ -116,6 +125,12 @@ function openModal(moduleKey, id) {
     const data = Object.fromEntries(new FormData(form).entries());
     Object.keys(listFieldState).forEach(fieldName => {
       data[fieldName] = listFieldState[fieldName].filter(c => c.name || c.phone);
+    });
+    // multi-select checkboxes aren't part of FormData in a usable form
+    // (same-name checkboxes collide), so read the checked ones directly.
+    form.querySelectorAll('[data-multiselect-field]').forEach(container => {
+      const fieldName = container.dataset.multiselectField;
+      data[fieldName] = Array.from(container.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
     });
     const previousRecord = id ? Store.get(cfg.collection, id) : null;
     const saved = id ? Store.update(cfg.collection, id, data) : Store.add(cfg.collection, data);
