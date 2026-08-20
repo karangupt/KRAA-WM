@@ -13,8 +13,11 @@ function initChrome() {
     $('#backdrop').classList.toggle('show');
   });
   $('#backdrop').addEventListener('click', closeSidebarOnMobile);
+  // Deliberately NOT closing on backdrop click anymore — mid-entry taps
+  // (e.g. opening a <select>'s dropdown, especially on mobile) were
+  // registering as an outside click and silently discarding everything
+  // typed so far. Closing now only happens via the X button or Cancel.
   $('#modalClose').addEventListener('click', closeModal);
-  $('#modalBackdrop').addEventListener('click', (e) => { if (e.target.id === 'modalBackdrop') closeModal(); });
   $('#todayChip').textContent = new Date().toLocaleDateString('en-IN', { weekday:'short', day:'numeric', month:'short', year:'numeric' });
 }
 
