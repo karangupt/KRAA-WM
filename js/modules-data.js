@@ -144,6 +144,14 @@ const MODULES = {
     title: 'Invoices', collection: 'invoices', icon: 'file-text',
     searchFields: ['number', 'customerName', 'date'],
     dateFilterField: 'date',
+    // All / Invoice / Provisional Invoice / Quotation — a dedicated way to
+    // pull up just the Quotations (or just Provisional Invoices) as their
+    // own list, separate from real invoiced revenue.
+    typeTabs: { field: 'docType', defaultValue: 'Tax Invoice', values: [
+      { value: 'Tax Invoice', label: 'Invoice' },
+      { value: 'Provisional Invoice', label: 'Provisional Invoice' },
+      { value: 'Quotation', label: 'Quotation' }
+    ] },
     columns: [
       { label: 'Number', field: 'number', cls: 'name-cell' },
       { label: 'Type', field: 'docType', render: v => v === 'Tax Invoice' ? 'Invoice' : (v || 'Invoice') },
