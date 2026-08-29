@@ -54,7 +54,8 @@ function monthLabel(monthKey) {
 }
 
 function buildMonthlyTrend() {
-  const incomeSources = [...Store.all('invoices'), ...Store.all('otherIncome')];
+  // Quotations are estimates, not sales — excluded from revenue everywhere.
+  const incomeSources = [...Store.all('invoices').filter(i => i.docType !== 'Quotation'), ...Store.all('otherIncome')];
   const expenseSources = [...Store.all('expenses')];
   const map = {};
   incomeSources.forEach(e => {
@@ -119,7 +120,10 @@ async function convertUsdToInr() {
 
 function renderDashboard() {
   const bookings = Store.all('bookings');
-  const invoices = Store.all('invoices');
+  // Quotations are estimates, not confirmed sales — excluded from revenue
+  // and from the "unpaid invoices" count below.
+  const invoices = Store.all('invoices').filter(i => i.docType !== 'Quotation');
+  const pendingQuotations = Store.all('invoices').filter(i => i.docType === 'Quotation').length;
   const expenses = Store.all('expenses');
   const equipment = Store.all('equipment');
   const bankAccounts = Store.all('bankAccounts');
@@ -170,7 +174,7 @@ function renderDashboard() {
     <div class="kpi"><div class="kpi-label">Income This Month</div><div class="kpi-value">${fmt(monthRevenue)}</div><div class="kpi-sub">Business + Other Income</div></div>
     <div class="kpi"><div class="kpi-label">Expenses This Month</div><div class="kpi-value">${fmt(monthExpense)}</div><div class="kpi-sub">Business + Personal</div></div>
     <div class="kpi"><div class="kpi-label">Net This Month</div><div class="kpi-value" style="color:${monthNet>=0?'var(--teal)':'var(--danger)'}">${fmt(monthNet)}</div></div>
-    <div class="kpi"><div class="kpi-label">Active Bookings</div><div class="kpi-value">${activeBookings}</div><div class="kpi-sub">${unpaidInvoices} unpaid invoice(s)</div></div>
+    <div class="kpi"><div class="kpi-label">Active Bookings</div><div class="kpi-value">${activeBookings}</div><div class="kpi-sub">${unpaidInvoices} unpaid invoice(s)${pendingQuotations ? ' · ' + pendingQuotations + ' quotation(s) pending' : ''}</div></div>
     <div class="kpi"><div class="kpi-label">Equipment Available</div><div class="kpi-value">${availableUnits}</div><div class="kpi-sub">across ${equipment.length} item types</div></div>
   </div>
 
