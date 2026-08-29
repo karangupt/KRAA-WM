@@ -67,8 +67,10 @@ const MODULE_SUMMARIES = {
     { label: 'Total Booking Value (Completed)', compute: rows => fmt(rows.filter(r => r.status === 'completed').reduce((s,r) => s + Number(r.amount||0), 0)) }
   ],
   invoice: [
-    { label: 'Total Invoiced', compute: rows => fmt(sumAll(rows)) },
-    { label: 'Unpaid Count', compute: rows => rows.filter(r => r.status !== 'paid').length }
+    // Quotations are estimates, not sales — excluded from both of these.
+    { label: 'Total Invoiced', compute: rows => fmt(rows.filter(r => r.docType !== 'Quotation').reduce((s, r) => s + Number(r.amount || 0), 0)) },
+    { label: 'Unpaid Count', compute: rows => rows.filter(r => r.docType !== 'Quotation' && r.status !== 'paid').length },
+    { label: 'Quotations Pending', compute: rows => rows.filter(r => r.docType === 'Quotation').length }
   ],
   payments: [
     { label: 'Total Received', compute: rows => fmt(sumAll(rows)) }
@@ -314,7 +316,11 @@ function renderModuleView(cfg, key) {
   ${cfg.typeTabs ? `
   <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px;">
     <button class="status-tab ${selectedTypeTab === 'all' ? 'active' : ''}" data-type-tab="all">All</button>
-    ${cfg.typeTabs.values.map(tv => `<button class="status-tab ${selectedTypeTab === tv ? 'active' : ''}" data-type-tab="${tv}">${tv}</button>`).join('')}
+    ${cfg.typeTabs.values.map(tv => {
+      const val = typeof tv === 'object' ? tv.value : tv;
+      const lbl = typeof tv === 'object' ? tv.label : tv;
+      return `<button class="status-tab ${selectedTypeTab === val ? 'active' : ''}" data-type-tab="${val}">${lbl}</button>`;
+    }).join('')}
   </div>` : ''}
   ${summaryDefs ? `
   <div class="kpi-row">
