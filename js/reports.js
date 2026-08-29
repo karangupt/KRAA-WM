@@ -187,7 +187,11 @@ function renderReports() {
   const corporateExpenses = allExpenses.filter(e => e._expType === 'corporate');
   const personalExpenses = allExpenses.filter(e => e._expType === 'personal');
 
-  const periodInvoices = invoices.filter(i => reportsInPeriod(i.date));
+  // A Quotation is just an estimate sent to a prospect — nothing has been
+  // sold or delivered yet, so it must never count as revenue. Provisional
+  // Invoices do count (goods/service already delivered, tax formality
+  // pending) and so does a regular Tax Invoice.
+  const periodInvoices = invoices.filter(i => reportsInPeriod(i.date) && i.docType !== 'Quotation');
   const periodOtherIncome = otherIncome.filter(o => reportsInPeriod(o.date));
   const businessRevenue = periodInvoices.reduce((s, i) => s + Number(i.amount || 0), 0);
   const otherIncomeTotal = periodOtherIncome.reduce((s, o) => s + Number(o.amount || 0), 0);
