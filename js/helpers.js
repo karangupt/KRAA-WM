@@ -49,24 +49,28 @@ const COMPANY_INFO = {
   paymentLink: 'https://razorpay.me/@projectorsolutions'
 };
 
-const PROJECTOR_RENTAL_TERMS = [
-  'Pricing: Prices mentioned in the invoice are inclusive of agreed rental charges only.',
-  'Payment Terms: Payment is due immediately upon completion of service unless otherwise agreed in writing.',
-  'Nature of Service: Equipment is provided strictly on a rental basis.',
-  'Equipment Responsibility: Any electrical, physical, liquid, accidental, or mishandling damage to the rented equipment during the rental period shall be chargeable to the customer.',
-  'Transportation & Installation: Transportation and installation charges are extra unless explicitly mentioned in the invoice.',
-  'Rental charges are applicable for a maximum usage period of 4 hours only. Any additional usage beyond the specified duration will be charged at ₹200 per hour per equipment.',
-  'Late Return / Delay: Extra charges may apply if the equipment is retained beyond the agreed rental time.',
-  'Power Requirement: Customer must ensure proper electricity and power backup availability at the venue.',
-  'Cancellation Policy: Last-minute cancellation after booking confirmation or dispatch may attract rental charges, as the equipment slot is reserved and other bookings may be declined.'
-];
-// Same as Projector, minus the 4-hour usage-limit clause (not applicable to LED Screens).
-const LEDSCREEN_RENTAL_TERMS = PROJECTOR_RENTAL_TERMS.filter(t => !t.startsWith('Rental charges are applicable for a maximum usage period'));
+// Every clause is identical across equipment types except the usage-duration
+// one (line 6) — LED Screens are billed a higher overage rate per hour than
+// Projector / TV / Sound rentals, so that single line is parametrized here
+// instead of duplicating the whole list per type.
+function buildRentalTerms(overageRatePerHour) {
+  return [
+    'Pricing: Prices mentioned in the invoice are inclusive of agreed rental charges only.',
+    'Payment Terms: Payment is due immediately upon completion of service unless otherwise agreed in writing.',
+    'Nature of Service: Equipment is provided strictly on a rental basis.',
+    'Equipment Responsibility: Any electrical, physical, liquid, accidental, or mishandling damage to the rented equipment during the rental period shall be chargeable to the customer.',
+    'Transportation & Installation: Transportation and installation charges are extra unless explicitly mentioned in the invoice.',
+    `Rental charges are applicable for a maximum usage period of 4 hours only. Any additional usage beyond the specified duration will be charged at ₹${overageRatePerHour} per hour per equipment.`,
+    'Late Return / Delay: Extra charges may apply if the equipment is retained beyond the agreed rental time.',
+    'Power Requirement: Customer must ensure proper electricity and power backup availability at the venue.',
+    'Cancellation Policy: Last-minute cancellation after booking confirmation or dispatch may attract rental charges, as the equipment slot is reserved and other bookings may be declined.'
+  ];
+}
 const RENTAL_TERMS = {
-  Projector: PROJECTOR_RENTAL_TERMS,
-  LEDScreen: LEDSCREEN_RENTAL_TERMS,
-  TV: LEDSCREEN_RENTAL_TERMS,
-  Sound: LEDSCREEN_RENTAL_TERMS
+  Projector: buildRentalTerms(500),
+  LEDScreen: buildRentalTerms(2000),
+  TV: buildRentalTerms(500),
+  Sound: buildRentalTerms(500)
 };
 
 function numToWordsIndian(num) {
