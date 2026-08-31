@@ -432,7 +432,7 @@ function renderInvoicePrintable() {
     </div>
 
     <div class="invoice-terms">
-      ${invoiceDraft.docType === 'Provisional Invoice' ? `
+      ${invoiceDraft.docType === 'Provisional Invoice' || invoiceDraft.docType === 'Tax Invoice' ? `
       <strong>Terms &amp; Conditions:</strong>
       <ol>${RENTAL_TERMS[invoiceDraft.rentalSubType || 'Projector'].map(t => `<li>${t}</li>`).join('')}</ol>
       ` : ''}
