@@ -173,7 +173,8 @@ function renderInvoiceGen() {
             <option value="Sale" ${invoiceDraft.quotationCategory === 'Sale' ? 'selected' : ''}>Sale (equipment sold, not rented)</option>
           </select>
         </div>
-        ${invoiceDraft.quotationCategory === 'Rental' ? `
+        ` : ''}
+        ${invoiceDraft.docType !== 'Quotation' || invoiceDraft.quotationCategory === 'Rental' ? `
         <div class="field"><label>Rental Type</label>
           <select id="ig_rentalSubType">
             <option value="Projector" ${invoiceDraft.rentalSubType === 'Projector' ? 'selected' : ''}>Projector Rental</option>
@@ -182,7 +183,6 @@ function renderInvoiceGen() {
             <option value="Sound" ${invoiceDraft.rentalSubType === 'Sound' ? 'selected' : ''}>Sound Rental</option>
           </select>
         </div>
-        ` : ''}
         ` : ''}
       </div>
       <label style="display:flex; align-items:center; gap:8px; margin-top:10px; font-size:12.5px; color:var(--muted); cursor:pointer;">
