@@ -110,7 +110,7 @@ const MODULES = {
       { label: 'Amount', field: 'amount', render: v => fmt(v) }
     ],
     fields: [
-      { name: 'date', label: 'Date', type: 'date', required: true },
+      { name: 'date', label: 'Date', type: 'date', required: true, default: 'today' },
       { name: 'expenseType', label: 'Personal or Corporate?', type: 'select', options: ['Corporate','Personal'], required: true },
       // Cleaned up — 'Vegetable' and 'Milk & Dairy' used to sit here as their
       // own top-level categories even though they're groceries; they're now
