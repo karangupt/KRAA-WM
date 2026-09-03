@@ -15,7 +15,10 @@ function openModal(moduleKey, id) {
   const listFieldState = {};
 
   form.innerHTML = cfg.fields.map(f => {
-    const val = record[f.name] ?? '';
+    // A field can opt into defaulting to today's date when adding a brand
+    // new record (never on edit — an existing record's saved date always
+    // wins) — still a plain editable input, just pre-filled as a convenience.
+    const val = record[f.name] ?? (f.type === 'date' && !id && f.default === 'today' ? todayStr() : '');
     const wrapAttrs = f.showIf ? `data-showif-field="${f.showIf.field}" data-showif-equals="${f.showIf.equals}"` : '';
     let inner;
     if (f.type === 'contacts-list') {
